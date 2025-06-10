@@ -1,4 +1,4 @@
-// Error messages and constants for the Ollama chat application
+// Error messages and constants for the ChatUI application
 
 export const ERROR_MESSAGES = {
     SERVER_OFFLINE: '❌ Ollama server is not running. Please start your Ollama server and try again.',
@@ -16,7 +16,7 @@ export const SUCCESS_MESSAGES = {
 } as const;
 
 export const INFO_MESSAGES = {
-    WELCOME: 'Welcome to Ollama Chat! Select a model and start chatting.',
+    WELCOME: 'Welcome to ChatUI! Select a model and start chatting.',
     LOADING_MODELS: 'Loading available models...',
     CHECKING_SERVER: 'Checking server connection...',
     GENERATING_RESPONSE: 'Generating response...',
@@ -35,10 +35,10 @@ export const API_ENDPOINTS = {
 } as const;
 
 export const STORAGE_KEYS = {
-    THEME: 'ollama-chat-theme',
-    LAST_MODEL: 'ollama-chat-last-model',
-    USER_PREFERENCES: 'ollama-chat-preferences',
-    CHAT_HISTORY: 'ollama-chat-history',
+    THEME: 'chatui-theme',
+    LAST_MODEL: 'chatui-last-model',
+    USER_PREFERENCES: 'chatui-preferences',
+    CHAT_HISTORY: 'chatui-history',
 } as const;
 
 export const ANIMATION_DURATIONS = {

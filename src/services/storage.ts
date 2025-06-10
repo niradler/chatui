@@ -1,5 +1,5 @@
 import type { Message, ChatHistory } from '../types';
-import type { ChatState } from '../hooks/useOllamaChat';
+import type { ChatState } from '../hooks/useChatUI';
 
 export interface StoredChat {
   id: string;
@@ -25,9 +25,9 @@ export interface StoredChatData {
 }
 
 const STORAGE_KEYS = {
-  CHAT_HISTORY: 'ollama-chat-history',
-  CURRENT_CHAT: 'ollama-current-chat',
-  USER_SETTINGS: 'ollama-user-settings',
+  CHAT_HISTORY: 'chatui-history',
+  CURRENT_CHAT: 'chatui-current-chat',
+  USER_SETTINGS: 'chatui-user-settings',
 } as const;
 
 class ChatStorageService {
@@ -41,14 +41,14 @@ class ChatStorageService {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.CHAT_HISTORY);
       if (!stored) return [];
-      
+
       const chatData: StoredChatData = JSON.parse(stored);
-      
+
       return Object.values(chatData)
         .map(chat => ({
           id: chat.id,
           title: chat.title,
-          lastMessage: chat.messages.length > 0 
+          lastMessage: chat.messages.length > 0
             ? chat.messages[chat.messages.length - 1].content.substring(0, 100) + '...'
             : 'No messages',
           timestamp: new Date(chat.timestamp),
@@ -66,10 +66,10 @@ class ChatStorageService {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.CHAT_HISTORY);
       if (!stored) return null;
-      
+
       const chatData: StoredChatData = JSON.parse(stored);
       const chat = chatData[chatId];
-      
+
       if (chat) {
         // Convert timestamp strings back to Date objects
         return {
@@ -82,7 +82,7 @@ class ChatStorageService {
           })),
         };
       }
-      
+
       return null;
     } catch (error) {
       console.error('Error loading chat:', error);
@@ -96,7 +96,7 @@ class ChatStorageService {
       const chatId = chatState.id || this.generateChatId();
       const stored = localStorage.getItem(STORAGE_KEYS.CHAT_HISTORY);
       const chatData: StoredChatData = stored ? JSON.parse(stored) : {};
-      
+
       const storedChat: StoredChat = {
         id: chatId,
         title: chatState.title,
@@ -110,11 +110,11 @@ class ChatStorageService {
         messageCount: chatState.messages.length,
         metadata: chatState.metadata,
       };
-      
+
       chatData[chatId] = storedChat;
       localStorage.setItem(STORAGE_KEYS.CHAT_HISTORY, JSON.stringify(chatData));
       localStorage.setItem(STORAGE_KEYS.CURRENT_CHAT, chatId);
-      
+
       console.log(`💾 Saved chat: ${chatState.title} (${chatState.messages.length} messages)`);
       return chatId;
     } catch (error) {
@@ -128,10 +128,10 @@ class ChatStorageService {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.CHAT_HISTORY);
       if (!stored) return null;
-      
+
       const chatData: StoredChatData = JSON.parse(stored);
       const chat = chatData[chatId];
-      
+
       if (chat) {
         return {
           id: chat.id,
@@ -146,7 +146,7 @@ class ChatStorageService {
           metadata: chat.metadata,
         };
       }
-      
+
       return null;
     } catch (error) {
       console.error('Error loading chat state:', error);
@@ -159,10 +159,10 @@ class ChatStorageService {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.CHAT_HISTORY);
       if (!stored) return false;
-      
+
       const chatData: StoredChatData = JSON.parse(stored);
       const existingChat = chatData[chatId];
-      
+
       if (existingChat) {
         chatData[chatId] = {
           ...existingChat,
@@ -171,11 +171,11 @@ class ChatStorageService {
           lastModified: new Date(),
           updatedAt: new Date(),
         };
-        
+
         localStorage.setItem(STORAGE_KEYS.CHAT_HISTORY, JSON.stringify(chatData));
         return true;
       }
-      
+
       return false;
     } catch (error) {
       console.error('Error updating chat:', error);
@@ -188,8 +188,8 @@ class ChatStorageService {
     try {
       const allChats = this.getChatHistory();
       const lowerQuery = query.toLowerCase();
-      
-      return allChats.filter(chat => 
+
+      return allChats.filter(chat =>
         chat.title.toLowerCase().includes(lowerQuery) ||
         chat.lastMessage.toLowerCase().includes(lowerQuery)
       );
@@ -215,12 +215,12 @@ class ChatStorageService {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.CHAT_HISTORY);
       if (!stored) return;
-      
+
       const chatData: StoredChatData = JSON.parse(stored);
       delete chatData[chatId];
-      
+
       localStorage.setItem(STORAGE_KEYS.CHAT_HISTORY, JSON.stringify(chatData));
-      
+
       // Clear current chat if it was deleted
       const currentChat = localStorage.getItem(STORAGE_KEYS.CURRENT_CHAT);
       if (currentChat === chatId) {
@@ -247,7 +247,7 @@ class ChatStorageService {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.CHAT_HISTORY);
       const chatData: StoredChatData = stored ? JSON.parse(stored) : {};
-      
+
       return JSON.stringify({
         exportDate: new Date().toISOString(),
         version: '1.0',
@@ -265,9 +265,9 @@ class ChatStorageService {
       const importData = JSON.parse(jsonData);
       const stored = localStorage.getItem(STORAGE_KEYS.CHAT_HISTORY);
       const chatData: StoredChatData = stored ? JSON.parse(stored) : {};
-      
+
       let importedCount = 0;
-      
+
       if (importData.chats && Array.isArray(importData.chats)) {
         for (const chat of importData.chats) {
           // Generate new ID to avoid conflicts
@@ -281,7 +281,7 @@ class ChatStorageService {
           importedCount++;
         }
       }
-      
+
       localStorage.setItem(STORAGE_KEYS.CHAT_HISTORY, JSON.stringify(chatData));
       return importedCount;
     } catch (error) {
@@ -295,24 +295,24 @@ class ChatStorageService {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.CHAT_HISTORY);
       if (!stored) return 0;
-      
+
       const chatData: StoredChatData = JSON.parse(stored);
       const chats = Object.values(chatData);
-      
+
       if (chats.length <= maxChats) return 0;
-      
+
       // Sort by last modified date and keep only the most recent
       chats.sort((a, b) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime());
-      
+
       const chatsToKeep = chats.slice(0, maxChats);
       const newChatData: StoredChatData = {};
-      
+
       chatsToKeep.forEach(chat => {
         newChatData[chat.id] = chat;
       });
-      
+
       localStorage.setItem(STORAGE_KEYS.CHAT_HISTORY, JSON.stringify(newChatData));
-      
+
       return chats.length - maxChats;
     } catch (error) {
       console.error('Error cleaning up chats:', error);
@@ -325,11 +325,11 @@ class ChatStorageService {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.CHAT_HISTORY);
       const chatData: StoredChatData = stored ? JSON.parse(stored) : {};
-      
+
       // Estimate storage usage (rough calculation)
       const used = new Blob([stored || '']).size;
       const available = 5 * 1024 * 1024; // Assume 5MB localStorage limit
-      
+
       return {
         used,
         available: Math.max(0, available - used),

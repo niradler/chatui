@@ -17,7 +17,7 @@ export interface ChatState {
   };
 }
 
-export const useOllamaChat = () => {
+export const useChatUI = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentModel, setCurrentModel] = useState<string>(() => {
@@ -139,8 +139,6 @@ export const useOllamaChat = () => {
 
       setMessages(restoredMessages);
       setIsLoading(false);
-
-      console.log(`🔄 Restored chat: ${chatData.title} (${restoredMessages.length} messages)`);
 
       return restoredState;
     } catch (error) {
@@ -299,7 +297,6 @@ export const useOllamaChat = () => {
     buffer.fullContent = '';
     buffer.timer = null;
 
-    console.log('🚀 Started streaming for message:', messageId);
   }, [updateMessage]);
 
   // Flush accumulated chunks to display
@@ -318,7 +315,6 @@ export const useOllamaChat = () => {
 
     // Update message with current content
     if (buffer.fullContent) {
-      console.log('📝 Flushing', buffer.chunks.length, 'chunks:', buffer.fullContent.slice(-20));
       updateMessage(buffer.messageId, {
         content: buffer.fullContent,
         isLoading: true,
@@ -364,8 +360,6 @@ export const useOllamaChat = () => {
       return;
     }
 
-    console.log('🏁 Ending streaming for message:', buffer.messageId);
-
     // Clear any pending timer
     if (buffer.timer) {
       clearTimeout(buffer.timer);
@@ -391,7 +385,6 @@ export const useOllamaChat = () => {
     buffer.fullContent = '';
     buffer.chunks = [];
 
-    console.log('✅ Streaming ended successfully');
   }, [updateMessage, flushStreamingBuffer]);
 
   // Clear/cancel streaming
@@ -408,7 +401,6 @@ export const useOllamaChat = () => {
     buffer.fullContent = '';
     buffer.chunks = [];
 
-    console.log('🧹 Streaming cleared');
   }, []);
 
   // Remove a message
@@ -464,36 +456,25 @@ export const useOllamaChat = () => {
       clearStreaming();
 
       if (enableStreaming) {
-        console.log('🚀 Starting streaming chat...');
-
-        // Start streaming for the assistant message
         startStreaming(assistantMessageId);
 
-        // Streaming response with optional images
         await ollamaApi.chatWithImages(
           currentModel,
           ollamaMessages,
           imageFiles,
           (token: string) => {
-            // Add each token to the streaming buffer
             addStreamingChunk(token);
           },
           () => {
-            console.log('✅ Streaming completed, finalizing message...');
             const processingTime = Date.now() - startTime;
-
-            // End streaming with metadata
             endStreaming(undefined, {
               model: currentModel,
               processingTime,
             });
-
             setIsLoading(false);
-            console.log('✅ Message finalized successfully');
           },
           abortControllerRef.current?.signal
         );
-        console.log('🏁 Streaming request completed');
       } else {
         // Non-streaming response with optional images
         const response = await ollamaApi.chatWithImages(currentModel, ollamaMessages, imageFiles);

@@ -1,4 +1,4 @@
-# 📋 **Ollama Chat Project - Mocks & Unimplemented Features Analysis**
+# 📋 **ChatUI Project - Mocks & Unimplemented Features Analysis**
 
 ## 🎭 **MOCKS & PLACEHOLDER DATA**
 

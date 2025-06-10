@@ -1,8 +1,8 @@
-# Ollama Chat UI
+# ChatUI
 
 A beautiful, modern chat interface for interacting with your local Ollama server. This is a clean alternative to ChatGPT that runs entirely on your local machine.
 
-![demo](docs/ollamaui.png)
+![demo](docs/chatui.png)
 
 ## Features
 
@@ -25,7 +25,7 @@ A beautiful, modern chat interface for interacting with your local Ollama server
 
 ```bash
 git clone <your-repo-url>
-cd ollama-chat
+cd chatui
 ```
 
 2. Install dependencies:
@@ -62,61 +62,8 @@ const ollamaApi = new OllamaApiService("http://your-ollama-host:port");
 
 ### Default Model
 
-You can set a default model in `src/hooks/useOllamaChat.ts`:
+You can set a default model in `src/hooks/useChatUI.ts`:
 
 ```typescript
-export const useOllamaChat = (defaultModel: string = 'your-preferred-model') => {
+export const useChatUI = (defaultModel: string = 'your-preferred-model') => {
 ```
-
-## Available Models
-
-The app will automatically detect all models installed on your Ollama server. Popular models include:
-
-- **llama2** - General purpose model
-- **codellama** - Code generation and understanding
-- **mistral** - Fast and efficient model
-- **phi** - Lightweight model for quick responses
-
-To install a new model:
-
-```bash
-ollama pull model-name
-```
-
-## Troubleshooting
-
-### \"Ollama server is not running\"
-
-1. Make sure Ollama is installed and running
-2. Check if the server is accessible at `http://localhost:11434`
-3. Try running `ollama serve` manually
-
-### \"No models available\"
-
-1. Install at least one model: `ollama pull llama2`
-2. Refresh the models list using the refresh button
-3. Check that Ollama server is running properly
-
-### CORS Issues
-
-If you encounter CORS errors, make sure your Ollama server allows requests from your development server. You may need to configure Ollama's CORS settings.
-
-## Build for Production
-
-```bash
-npm run build
-# or
-pnpm build
-# or
-yarn build
-```
-
-The built files will be in the `dist` directory.
-
-## Contributing
-
-Feel free to submit issues and pull requests!
-
-## License
-
-MIT License - see LICENSE file for details.

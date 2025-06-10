@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { ChatHistory } from '../types';
 import { chatStorage } from '../services/storage';
-import type { ChatState } from './useOllamaChat';
+import type { ChatState } from './useChatUI';
 
 export const useChatHistory = () => {
   const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
@@ -13,13 +13,13 @@ export const useChatHistory = () => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       // Add small delay to prevent UI flashing
       await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       const history = chatStorage.getChatHistory();
       setChatHistory(history);
-      
+
       console.log(`📋 Loaded ${history.length} chats from history`);
     } catch (error) {
       console.error('Failed to load chat history:', error);
@@ -34,10 +34,10 @@ export const useChatHistory = () => {
   const saveChatState = useCallback((chatState: ChatState): string => {
     try {
       const chatId = chatStorage.saveChatState(chatState);
-      
+
       // Refresh chat history to reflect changes
       loadChatHistory();
-      
+
       return chatId;
     } catch (error) {
       console.error('Failed to save chat:', error);
@@ -50,9 +50,6 @@ export const useChatHistory = () => {
   const loadChatState = useCallback((chatId: string): ChatState | null => {
     try {
       const chatState = chatStorage.getChatState(chatId);
-      if (chatState) {
-        console.log(`🔄 Loaded chat state: ${chatState.title}`);
-      }
       return chatState;
     } catch (error) {
       console.error('Failed to load chat:', error);
@@ -65,10 +62,10 @@ export const useChatHistory = () => {
   const deleteChat = useCallback(async (chatId: string) => {
     try {
       chatStorage.deleteChat(chatId);
-      
+
       // Refresh chat history
       await loadChatHistory();
-      
+
       console.log(`🗋 Deleted chat: ${chatId}`);
     } catch (error) {
       console.error('Failed to delete chat:', error);
@@ -90,12 +87,12 @@ export const useChatHistory = () => {
           tags: updates.tags,
         }
       });
-      
+
       if (success) {
         loadChatHistory();
         console.log(`✏️ Updated chat metadata: ${chatId}`);
       }
-      
+
       return success;
     } catch (error) {
       console.error('Failed to update chat:', error);
@@ -141,8 +138,7 @@ export const useChatHistory = () => {
     try {
       const importedCount = chatStorage.importChats(jsonData);
       await loadChatHistory(); // Reload to show imported chats
-      
-      console.log(`📥 Imported ${importedCount} chats`);
+
       return importedCount;
     } catch (error) {
       console.error('Failed to import chats:', error);
@@ -209,13 +205,13 @@ export const useChatHistory = () => {
     chatHistory,
     isLoading,
     error,
-    
+
     // Core actions
     loadChatHistory,
     saveChatState,
     loadChatState,
     deleteChat,
-    
+
     // Enhanced actions
     updateChatMetadata,
     searchChats,
@@ -225,7 +221,7 @@ export const useChatHistory = () => {
     getStorageInfo,
     cleanupOldChats,
     createAutoSave,
-    
+
     // Utility
     clearError: () => setError(null),
   };

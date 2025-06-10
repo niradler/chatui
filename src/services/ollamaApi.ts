@@ -92,7 +92,6 @@ export class OllamaApiService {
     const callCompletionOnce = () => {
       if (!isCompleted) {
         isCompleted = true;
-        console.log('🔚 Stream completion called');
         onComplete?.();
       }
     };
@@ -100,7 +99,7 @@ export class OllamaApiService {
     try {
       while (true) {
         const { done, value } = await reader.read();
-        
+
         if (done) {
           // Process any remaining buffer content
           if (buffer.trim()) {
@@ -129,17 +128,17 @@ export class OllamaApiService {
 
         const chunk = decoder.decode(value, { stream: true });
         buffer += chunk;
-        
+
         // Process complete lines from buffer
         const lines = buffer.split('\n');
         buffer = lines.pop() || ''; // Keep incomplete line in buffer
-        
+
         for (const line of lines) {
           if (!line.trim()) continue;
-          
+
           try {
             const data: OllamaResponse = JSON.parse(line);
-            
+
             if (data.message?.content) {
               fullResponse += data.message.content;
               // Stream each token immediately for smooth experience
@@ -202,10 +201,10 @@ export class OllamaApiService {
       'vila', 'ferret', 'lynx', 'vision', 'multimodal', 'mm'
     ];
     const modelLower = modelName.toLowerCase();
-    return visionModels.some(vm => modelLower.includes(vm)) || 
-           modelLower.includes('vision') || 
-           modelLower.includes('visual') ||
-           modelLower.includes('image');
+    return visionModels.some(vm => modelLower.includes(vm)) ||
+      modelLower.includes('vision') ||
+      modelLower.includes('visual') ||
+      modelLower.includes('image');
   }
 
   // Enhanced chat method with image support

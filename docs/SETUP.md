@@ -1,4 +1,4 @@
-# Enhanced Ollama Chat UI - Installation & Setup
+# Enhanced ChatUI - Installation & Setup
 
 ## 🚀 Quick Start
 
@@ -141,4 +141,4 @@ The UI is built with Tailwind CSS and supports:
 - `mermaid` - Diagram rendering
 - `react-dropzone` - File upload functionality
 
-Enjoy your enhanced Ollama Chat experience! 🎉
+Enjoy your enhanced ChatUI Chat experience! 🎉

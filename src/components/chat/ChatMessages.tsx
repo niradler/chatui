@@ -1,8 +1,8 @@
-import React from 'react';
-import type { Message, SuggestedPrompt } from '../../types/index';
-import MessageBubble from './MessageBubble';
-import LoadingIndicator from './LoadingIndicator';
-import WelcomeScreen from './WelcomeScreen';
+import React from "react";
+import type { Message, SuggestedPrompt } from "../../types/index";
+import MessageBubble from "./MessageBubble";
+import LoadingIndicator from "./LoadingIndicator";
+import WelcomeScreen from "./WelcomeScreen";
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -10,8 +10,8 @@ interface ChatMessagesProps {
   suggestedPrompts: SuggestedPrompt[];
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   onPromptClick: (prompt: string) => void;
-  onLike: (messageId: string) => void;
-  onDislike: (messageId: string) => void;
+  onLike?: (messageId: string) => void;
+  onDislike?: (messageId: string) => void;
   onCopy: (content: string) => void;
   onShare?: (messageId: string) => void;
   onRegenerate?: (messageId: string) => void;
@@ -36,7 +36,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   return (
     <div className="flex-1 overflow-y-auto scrollbar-thin">
       {messages.length === 0 ? (
-        <WelcomeScreen 
+        <WelcomeScreen
           suggestedPrompts={suggestedPrompts}
           onPromptClick={onPromptClick}
         />
@@ -57,7 +57,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
           ))}
 
           {/* Only show loading indicator if we're loading but don't have a streaming message */}
-          {isLoading && !messages.some(msg => msg.isLoading) && (
+          {isLoading && !messages.some((msg) => msg.isLoading) && (
             <LoadingIndicator onStop={onStopGeneration} />
           )}
 

@@ -14,21 +14,30 @@ import Sidebar from "./components/sidebar/Sidebar";
 import ChatMessages from "./components/chat/ChatMessages";
 import ChatInput from "./components/chat/ChatInput";
 import ModelSelector from "./components/ModelSelector";
+import { ToastProvider } from "./components/Toast";
 
 // Hooks
 import {
   useDarkMode,
   useAutoResize,
   useScrollToBottom,
-  useOllamaChat,
+  useChatUI,
 } from "./hooks";
 import { useChatHistory } from "./hooks/useChatHistory";
+import { useToast } from "./hooks/useToast";
 
 // Types
-import type {
-  MessageImage,
-  SuggestedPrompt,
-} from "./types/index";
+import type { Message, MessageImage, SuggestedPrompt } from "./types/index";
+
+// Add type for window with configureStreaming
+declare global {
+  interface Window {
+    configureStreaming: (config: {
+      chunkSize: number;
+      displayInterval: number;
+    }) => void;
+  }
+}
 
 const App: React.FC = () => {
   const [inputValue, setInputValue] = useState("");
@@ -41,8 +50,9 @@ const App: React.FC = () => {
 
   const { darkMode, toggleDarkMode } = useDarkMode();
   const { textareaRef } = useAutoResize(inputValue);
+  const { showSuccess, showError } = useToast();
 
-  // Ollama chat hook
+  // ChatUI chat hook
   const {
     messages,
     isLoading,
@@ -61,7 +71,7 @@ const App: React.FC = () => {
     initializeNewChat,
     restoreChat,
     getCurrentChatState,
-  } = useOllamaChat();
+  } = useChatUI();
 
   // Chat history hook
   const {
@@ -84,13 +94,13 @@ const App: React.FC = () => {
   // Configure streaming for optimal UX
   useEffect(() => {
     configureStreaming({
-      chunkSize: 2,        // Show every 2 chunks for smooth reading
-      displayInterval: 80  // Max 80ms between displays for responsive feel
+      chunkSize: 2, // Show every 2 chunks for smooth reading
+      displayInterval: 80, // Max 80ms between displays for responsive feel
     });
-    
+
     // Expose configureStreaming globally for testing (remove in production)
-    if (typeof window !== 'undefined') {
-      (window as any).configureStreaming = configureStreaming;
+    if (typeof window !== "undefined") {
+      window.configureStreaming = configureStreaming;
     }
   }, [configureStreaming]);
 
@@ -104,46 +114,52 @@ const App: React.FC = () => {
   }, [clearMessages, initializeNewChat, clearError]);
 
   // Handle chat selection with restore
-  const handleSelectChat = useCallback(async (chatId: string) => {
-    try {
-      setSidebarOpen(false);
-      
-      // Load chat state
-      const chatState = loadChatState(chatId);
-      
-      if (chatState) {
-        // Restore the complete chat state
-        await restoreChat({
-          id: chatState.id!,
-          title: chatState.title,
-          messages: chatState.messages,
-          model: chatState.model,
-          createdAt: chatState.createdAt,
-          updatedAt: chatState.updatedAt,
-        });
-        
-        console.log(`🔄 Successfully restored chat: ${chatState.title}`);
-      } else {
-        console.error('Chat not found:', chatId);
+  const handleSelectChat = useCallback(
+    async (chatId: string) => {
+      try {
+        setSidebarOpen(false);
+
+        // Load chat state
+        const chatState = loadChatState(chatId);
+
+        if (chatState) {
+          // Restore the complete chat state
+          await restoreChat({
+            id: chatState.id!,
+            title: chatState.title,
+            messages: chatState.messages,
+            model: chatState.model,
+            createdAt: chatState.createdAt,
+            updatedAt: chatState.updatedAt,
+          });
+
+          showSuccess(`Successfully restored chat: ${chatState.title}`);
+        } else {
+          showError("Chat not found");
+        }
+      } catch {
+        showError("Failed to restore chat");
       }
-    } catch (error) {
-      console.error('Failed to restore chat:', error);
-    }
-  }, [loadChatState, restoreChat]);
+    },
+    [loadChatState, restoreChat, showSuccess, showError]
+  );
 
   // Handle chat deletion
-  const handleDeleteChat = useCallback(async (chatId: string) => {
-    try {
-      await deleteChat(chatId);
-      
-      // If we deleted the current chat, start a new one
-      if (currentChatId === chatId) {
-        handleNewChat();
+  const handleDeleteChat = useCallback(
+    async (chatId: string) => {
+      try {
+        await deleteChat(chatId);
+
+        // If we deleted the current chat, start a new one
+        if (currentChatId === chatId) {
+          handleNewChat();
+        }
+      } catch {
+        showError("Failed to delete chat");
       }
-    } catch (error) {
-      console.error('Failed to delete chat:', error);
-    }
-  }, [deleteChat, currentChatId, handleNewChat]);
+    },
+    [deleteChat, currentChatId, handleNewChat, showError]
+  );
 
   // Auto-save chat when messages change
   useEffect(() => {
@@ -198,7 +214,6 @@ const App: React.FC = () => {
       if (!messageText.trim() && (!images || images.length === 0)) return;
       if (isLoading) return;
 
-      // Send message to Ollama with optional images
       await sendMessage(messageText, images);
       setInputValue("");
 
@@ -211,34 +226,35 @@ const App: React.FC = () => {
   );
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+    (e: React.KeyboardEvent<Element>) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        handleSubmit(e as any);
+        const syntheticEvent = { preventDefault: () => {} } as React.FormEvent;
+        handleSubmit(syntheticEvent);
       }
     },
     [handleSubmit]
   );
 
-  const handleLike = useCallback((messageId: string) => {
-    console.log("Liked message:", messageId);
+  const handleLike = useCallback(() => {
     // You can implement feedback storage here
   }, []);
 
-  const handleDislike = useCallback((messageId: string) => {
-    console.log("Disliked message:", messageId);
+  const handleDislike = useCallback(() => {
     // You can implement feedback storage here
   }, []);
 
-  const handleCopy = useCallback(async (content: string) => {
-    try {
-      await navigator.clipboard.writeText(content);
-      // You could show a toast notification here
-      console.log("Content copied to clipboard");
-    } catch (err) {
-      console.error("Failed to copy text: ", err);
-    }
-  }, []);
+  const handleCopy = useCallback(
+    async (content: string) => {
+      try {
+        await navigator.clipboard.writeText(content);
+        showSuccess("Content copied to clipboard");
+      } catch {
+        showError("Failed to copy content");
+      }
+    },
+    [showSuccess, showError]
+  );
 
   const handlePromptClick = useCallback(
     (prompt: string) => {
@@ -285,7 +301,7 @@ const App: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `ollama-chat-export-${Date.now()}.json`;
+    a.download = `chatui-export-${Date.now()}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -296,11 +312,11 @@ const App: React.FC = () => {
     if (navigator.share && messages.length > 0) {
       try {
         await navigator.share({
-          title: "Ollama Chat Conversation",
+          title: "ChatUI Conversation",
           text: `Check out this AI conversation:\
 \
 ${messages
-  .map((m) => `${m.type}: ${m.content}`)
+  .map((m: Message) => `${m.type}: ${m.content}`)
   .join(
     "\
 \
@@ -309,10 +325,10 @@ ${messages
           url: window.location.href,
         });
       } catch (err) {
-        console.log("Error sharing:", err);
+        console.error("Error sharing:", err);
         handleCopy(
           messages
-            .map((m) => `${m.type}: ${m.content}`)
+            .map((m: Message) => `${m.type}: ${m.content}`)
             .join(
               "\
 \
@@ -324,7 +340,7 @@ ${messages
       // Fallback to copy
       handleCopy(
         messages
-          .map((m) => `${m.type}: ${m.content}`)
+          .map((m: Message) => `${m.type}: ${m.content}`)
           .join(
             "\
 \
@@ -336,6 +352,7 @@ ${messages
 
   return (
     <div className={`${darkMode ? "dark" : ""}`}>
+      <ToastProvider />
       <div className="flex h-screen bg-white dark:bg-neutral-900 text-gray-900 dark:text-white">
         {/* Sidebar */}
         <Sidebar
@@ -363,7 +380,7 @@ ${messages
             </button>
             <div className="flex-1 text-center">
               <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {isRestoring ? 'Restoring...' : chatTitle}
+                {isRestoring ? "Restoring..." : chatTitle}
               </h1>
               {currentChatId && (
                 <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -416,13 +433,13 @@ ${messages
             suggestedPrompts={suggestedPrompts}
             messagesEndRef={messagesEndRef}
             onPromptClick={handlePromptClick}
-            onLike={handleLike}
-            onDislike={handleDislike}
+            // onLike={handleLike}
+            // onDislike={handleDislike}
             onCopy={handleCopy}
-            onShare={(messageId) => {
-              const message = messages.find((m) => m.id === messageId);
-              if (message) handleCopy(message.content);
-            }}
+            // onShare={(messageId) => {
+            //   const message = messages.find((m: Message) => m.id === messageId);
+            //   if (message) handleCopy(message.content);
+            // }}
             onRegenerate={() => regenerateLastResponse()}
             onStopGeneration={stopGeneration}
             darkMode={darkMode}

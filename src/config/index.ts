@@ -16,7 +16,7 @@ export const OLLAMA_CONFIG = {
 // App Configuration
 export const APP_CONFIG = {
     // App name displayed in the UI
-    appName: 'Ollama Chat',
+    appName: 'ChatUI',
 
     // Maximum number of chat history items to display
     maxChatHistory: 50,

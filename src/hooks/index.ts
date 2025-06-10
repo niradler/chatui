@@ -1,6 +1,6 @@
 export { useDarkMode } from './useDarkMode';
 export { useAutoResize } from './useAutoResize';
 export { useScrollToBottom } from './useScrollToBottom';
-export { useOllamaChat } from './useOllamaChat';
+export { useChatUI } from './useChatUI';
 export { useOllamaModels } from './useOllamaModels';
 export { useChatHistory } from './useChatHistory';

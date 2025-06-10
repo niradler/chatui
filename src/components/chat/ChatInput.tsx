@@ -37,16 +37,32 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const [images, setImages] = useState<MessageImage[]>([]);
   const [showImageUpload, setShowImageUpload] = useState(false);
 
-  // Import vision check from ollamaApi
   const isVisionModel = React.useMemo(() => {
-    const visionModels = ['llava', 'bakllava', 'moondream', 'llava-llama3', 'llava-phi3',
-      'minicpm-v', 'cogvlm', 'yi-vl', 'qwen-vl', 'internvl',
-      'vila', 'ferret', 'lynx', 'vision', 'multimodal', 'mm'];
+    const visionModels = [
+      "llava",
+      "bakllava",
+      "moondream",
+      "llava-llama3",
+      "llava-phi3",
+      "minicpm-v",
+      "cogvlm",
+      "yi-vl",
+      "qwen-vl",
+      "internvl",
+      "vila",
+      "ferret",
+      "lynx",
+      "vision",
+      "multimodal",
+      "mm",
+    ];
     const modelLower = currentModel.toLowerCase();
-    return visionModels.some(vm => modelLower.includes(vm)) || 
-           modelLower.includes('vision') || 
-           modelLower.includes('visual') ||
-           modelLower.includes('image');
+    return (
+      visionModels.some((vm) => modelLower.includes(vm)) ||
+      modelLower.includes("vision") ||
+      modelLower.includes("visual") ||
+      modelLower.includes("image")
+    );
   }, [currentModel]);
 
   const handleSubmit = (e: React.FormEvent) => {

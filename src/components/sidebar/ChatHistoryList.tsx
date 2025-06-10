@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { TrashIcon } from '@heroicons/react/24/outline';
-import type { ChatHistory } from '../../types/index';
+import React, { useState } from "react";
+import { TrashIcon } from "@heroicons/react/24/outline";
+import type { ChatHistory } from "../../types/index";
 
 interface ChatHistoryListProps {
   chatHistory: ChatHistory[];
@@ -12,19 +12,21 @@ const formatTime = (date: Date) => {
   const now = new Date();
   const diff = now.getTime() - date.getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  
-  if (days === 0) return 'Today';
-  if (days === 1) return 'Yesterday';
+
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
   if (days < 7) return `${days} days ago`;
   return date.toLocaleDateString();
 };
 
-const ChatHistoryList: React.FC<ChatHistoryListProps> = ({ 
-  chatHistory, 
-  onSelectChat, 
-  onDeleteChat 
+const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
+  chatHistory,
+  onSelectChat,
+  onDeleteChat,
 }) => {
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
+    null
+  );
   const [hoveredChat, setHoveredChat] = useState<string | null>(null);
 
   const handleDeleteClick = (e: React.MouseEvent, chatId: string) => {
@@ -61,7 +63,7 @@ const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
         Recent Conversations
       </h3>
       {chatHistory.map((chat) => (
-        <div 
+        <div
           key={chat.id}
           className="relative group"
           onMouseEnter={() => setHoveredChat(chat.id)}
@@ -90,14 +92,12 @@ const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
             </div>
           ) : (
             // Regular chat item
-            <button
+            <div
               onClick={() => onSelectChat?.(chat.id)}
-              className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-neutral-300 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors group flex items-start justify-between"
+              className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-neutral-300 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors group flex items-start justify-between cursor-pointer"
             >
               <div className="flex-1 min-w-0 pr-2">
-                <div className="truncate font-medium text-sm">
-                  {chat.title}
-                </div>
+                <div className="truncate font-medium text-sm">{chat.title}</div>
                 <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-neutral-500 mt-1">
                   <span>{formatTime(chat.timestamp)}</span>
                   {chat.messageCount && (
@@ -108,7 +108,7 @@ const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
                   )}
                 </div>
               </div>
-              
+
               {/* Delete button */}
               {hoveredChat === chat.id && onDeleteChat && (
                 <button
@@ -119,7 +119,7 @@ const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
                   <TrashIcon className="w-4 h-4" />
                 </button>
               )}
-            </button>
+            </div>
           )}
         </div>
       ))}
