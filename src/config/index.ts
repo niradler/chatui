@@ -3,9 +3,6 @@ export const OLLAMA_CONFIG = {
     // Default Ollama server URL
     baseUrl: 'http://localhost:11434',
 
-    // Default model to use
-    defaultModel: 'gemma3',
-
     // Enable streaming responses (recommended)
     enableStreaming: true,
 

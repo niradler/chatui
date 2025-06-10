@@ -1,8 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Message, MessageImage } from '../types';
 import { ollamaApi, type OllamaMessage } from '../services/ollamaApi';
-import { OLLAMA_CONFIG } from '../config';
-import { ERROR_MESSAGES } from '../constants';
+import { ERROR_MESSAGES, STORAGE_KEYS } from '../constants';
 
 export interface ChatState {
   id: string | null;
@@ -18,25 +17,28 @@ export interface ChatState {
   };
 }
 
-export const useOllamaChat = (defaultModel: string = OLLAMA_CONFIG.defaultModel) => {
+export const useOllamaChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentModel, setCurrentModel] = useState(defaultModel);
+  const [currentModel, setCurrentModel] = useState<string>(() => {
+    const savedModel = localStorage.getItem(STORAGE_KEYS.LAST_MODEL);
+    return savedModel || '';
+  });
   const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [chatTitle, setChatTitle] = useState<string>('New Chat');
   const [isRestoring, setIsRestoring] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const messageIdCounterRef = useRef(0);
-  const chatStateRef = useRef<ChatState>({ 
-    id: null, 
-    title: 'New Chat', 
-    messages: [], 
-    model: defaultModel,
+  const chatStateRef = useRef<ChatState>({
+    id: null,
+    title: 'New Chat',
+    messages: [],
+    model: currentModel,
     createdAt: new Date(),
     updatedAt: new Date()
   });
-  
+
   // Streaming buffer configuration
   const streamingBufferRef = useRef({
     chunks: [] as string[],
@@ -52,11 +54,11 @@ export const useOllamaChat = (defaultModel: string = OLLAMA_CONFIG.defaultModel)
   const generateChatTitle = useCallback((messages: Message[]): string => {
     const firstUserMessage = messages.find(msg => msg.type === 'user' && msg.content.trim());
     if (!firstUserMessage) return 'New Chat';
-    
+
     const content = firstUserMessage.content.trim();
     // Take first 50 characters, break at word boundary
     if (content.length <= 50) return content;
-    
+
     const truncated = content.substring(0, 47);
     const lastSpace = truncated.lastIndexOf(' ');
     return (lastSpace > 20 ? truncated.substring(0, lastSpace) : truncated) + '...';
@@ -69,7 +71,7 @@ export const useOllamaChat = (defaultModel: string = OLLAMA_CONFIG.defaultModel)
       ...updates,
       updatedAt: new Date(),
     };
-    
+
     if (updates.title) {
       setChatTitle(updates.title);
     }
@@ -85,16 +87,16 @@ export const useOllamaChat = (defaultModel: string = OLLAMA_CONFIG.defaultModel)
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    
+
     chatStateRef.current = newChatState;
     setCurrentChatId(null);
     setChatTitle('New Chat');
     setMessages([]);
-    
+
     if (model) {
       setCurrentModel(model);
     }
-    
+
     return newChatState;
   }, [currentModel]);
 
@@ -109,12 +111,12 @@ export const useOllamaChat = (defaultModel: string = OLLAMA_CONFIG.defaultModel)
   }) => {
     try {
       setIsRestoring(true);
-      
+
       // Stop any ongoing operations
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
-      
+
       // Update chat state
       const restoredState: ChatState = {
         ...chatData,
@@ -123,23 +125,23 @@ export const useOllamaChat = (defaultModel: string = OLLAMA_CONFIG.defaultModel)
           lastActivity: new Date(chatData.updatedAt),
         }
       };
-      
+
       chatStateRef.current = restoredState;
       setCurrentChatId(chatData.id);
       setChatTitle(chatData.title);
       setCurrentModel(chatData.model);
-      
+
       // Restore messages with proper timestamp conversion
       const restoredMessages = chatData.messages.map(msg => ({
         ...msg,
         timestamp: new Date(msg.timestamp),
       }));
-      
+
       setMessages(restoredMessages);
       setIsLoading(false);
-      
+
       console.log(`🔄 Restored chat: ${chatData.title} (${restoredMessages.length} messages)`);
-      
+
       return restoredState;
     } catch (error) {
       console.error('Failed to restore chat:', error);
@@ -166,7 +168,7 @@ export const useOllamaChat = (defaultModel: string = OLLAMA_CONFIG.defaultModel)
           .reduce((acc, msg, _, arr) => acc + (msg.metadata!.processingTime! / arr.length), 0),
       }
     };
-    
+
     chatStateRef.current = currentState;
     return currentState;
   }, [currentChatId, chatTitle, messages, currentModel]);
@@ -179,9 +181,9 @@ export const useOllamaChat = (defaultModel: string = OLLAMA_CONFIG.defaultModel)
         setChatTitle(newTitle);
         updateChatState({ title: newTitle });
       }
-      
-      updateChatState({ 
-        messages, 
+
+      updateChatState({
+        messages,
         metadata: {
           totalMessages: messages.length,
           lastActivity: new Date(),
@@ -189,6 +191,32 @@ export const useOllamaChat = (defaultModel: string = OLLAMA_CONFIG.defaultModel)
       });
     }
   }, [messages, generateChatTitle, chatTitle, updateChatState]);
+
+  // Load available models and set default if none selected
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        const models = await ollamaApi.getModels();
+        if (models.length > 0 && !currentModel) {
+          const firstModel = models[0].name;
+          setCurrentModel(firstModel);
+          localStorage.setItem(STORAGE_KEYS.LAST_MODEL, firstModel);
+          chatStateRef.current.model = firstModel;
+        }
+      } catch (error) {
+        console.error('Failed to load models:', error);
+      }
+    };
+    loadModels();
+  }, [currentModel]);
+
+  // Update local storage when model changes
+  const handleModelChange = useCallback((model: string) => {
+    setCurrentModel(model);
+    localStorage.setItem(STORAGE_KEYS.LAST_MODEL, model);
+    chatStateRef.current.model = model;
+  }, []);
+
   const checkServerStatus = useCallback(async () => {
     setServerStatus('checking');
     const isRunning = await ollamaApi.isServerRunning();
@@ -258,36 +286,36 @@ export const useOllamaChat = (defaultModel: string = OLLAMA_CONFIG.defaultModel)
   // Start streaming for a message
   const startStreaming = useCallback((messageId: string) => {
     const buffer = streamingBufferRef.current;
-    
+
     // Clear any existing streaming state
     if (buffer.timer) {
       clearTimeout(buffer.timer);
     }
-    
+
     // Initialize streaming state
     buffer.chunks = [];
     buffer.isStreaming = true;
     buffer.messageId = messageId;
     buffer.fullContent = '';
     buffer.timer = null;
-    
+
     console.log('🚀 Started streaming for message:', messageId);
   }, [updateMessage]);
 
   // Flush accumulated chunks to display
   const flushStreamingBuffer = useCallback(() => {
     const buffer = streamingBufferRef.current;
-    
+
     if (!buffer.isStreaming || !buffer.messageId) {
       return;
     }
-    
+
     // Clear timer
     if (buffer.timer) {
       clearTimeout(buffer.timer);
       buffer.timer = null;
     }
-    
+
     // Update message with current content
     if (buffer.fullContent) {
       console.log('📝 Flushing', buffer.chunks.length, 'chunks:', buffer.fullContent.slice(-20));
@@ -296,7 +324,7 @@ export const useOllamaChat = (defaultModel: string = OLLAMA_CONFIG.defaultModel)
         isLoading: true,
       });
     }
-    
+
     // Clear processed chunks
     buffer.chunks = [];
   }, [updateMessage]);
@@ -304,16 +332,16 @@ export const useOllamaChat = (defaultModel: string = OLLAMA_CONFIG.defaultModel)
   // Add chunk to buffer and handle display
   const addStreamingChunk = useCallback((chunk: string) => {
     const buffer = streamingBufferRef.current;
-    
+
     if (!buffer.isStreaming || !buffer.messageId) {
       console.warn('⚠️ Received chunk but not streaming:', chunk);
       return;
     }
-    
+
     // Add chunk to buffer
     buffer.chunks.push(chunk);
     buffer.fullContent += chunk;
-    
+
     // Check if we should display accumulated chunks
     if (buffer.chunks.length >= buffer.chunkSize) {
       flushStreamingBuffer();
@@ -330,25 +358,25 @@ export const useOllamaChat = (defaultModel: string = OLLAMA_CONFIG.defaultModel)
   // End streaming and finalize message
   const endStreaming = useCallback((finalContent?: string, metadata?: any) => {
     const buffer = streamingBufferRef.current;
-    
+
     if (!buffer.isStreaming || !buffer.messageId) {
       console.warn('⚠️ Attempted to end streaming but not streaming');
       return;
     }
-    
+
     console.log('🏁 Ending streaming for message:', buffer.messageId);
-    
+
     // Clear any pending timer
     if (buffer.timer) {
       clearTimeout(buffer.timer);
       buffer.timer = null;
     }
-    
+
     // Final flush with any remaining chunks
     if (buffer.chunks.length > 0) {
       flushStreamingBuffer();
     }
-    
+
     // Final update with complete content and metadata
     const finalText = finalContent || buffer.fullContent;
     updateMessage(buffer.messageId, {
@@ -356,30 +384,30 @@ export const useOllamaChat = (defaultModel: string = OLLAMA_CONFIG.defaultModel)
       isLoading: false,
       metadata,
     });
-    
+
     // Clear streaming state
     buffer.isStreaming = false;
     buffer.messageId = '';
     buffer.fullContent = '';
     buffer.chunks = [];
-    
+
     console.log('✅ Streaming ended successfully');
   }, [updateMessage, flushStreamingBuffer]);
 
   // Clear/cancel streaming
   const clearStreaming = useCallback(() => {
     const buffer = streamingBufferRef.current;
-    
+
     if (buffer.timer) {
       clearTimeout(buffer.timer);
       buffer.timer = null;
     }
-    
+
     buffer.isStreaming = false;
     buffer.messageId = '';
     buffer.fullContent = '';
     buffer.chunks = [];
-    
+
     console.log('🧹 Streaming cleared');
   }, []);
 
@@ -431,16 +459,16 @@ export const useOllamaChat = (defaultModel: string = OLLAMA_CONFIG.defaultModel)
 
       // Extract files from images for API call
       const imageFiles = images ? images.map(img => img.file) : [];
-      
+
       // Reset streaming buffer timer for new conversation
       clearStreaming();
 
       if (enableStreaming) {
         console.log('🚀 Starting streaming chat...');
-        
+
         // Start streaming for the assistant message
         startStreaming(assistantMessageId);
-        
+
         // Streaming response with optional images
         await ollamaApi.chatWithImages(
           currentModel,
@@ -453,13 +481,13 @@ export const useOllamaChat = (defaultModel: string = OLLAMA_CONFIG.defaultModel)
           () => {
             console.log('✅ Streaming completed, finalizing message...');
             const processingTime = Date.now() - startTime;
-            
+
             // End streaming with metadata
             endStreaming(undefined, {
               model: currentModel,
               processingTime,
             });
-            
+
             setIsLoading(false);
             console.log('✅ Message finalized successfully');
           },
@@ -483,7 +511,7 @@ export const useOllamaChat = (defaultModel: string = OLLAMA_CONFIG.defaultModel)
 
     } catch (error) {
       console.error('Error sending message:', error);
-      
+
       // Clear streaming state
       clearStreaming();
 
@@ -503,7 +531,7 @@ export const useOllamaChat = (defaultModel: string = OLLAMA_CONFIG.defaultModel)
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-    
+
     // Clear streaming state
     clearStreaming();
 
@@ -549,14 +577,14 @@ export const useOllamaChat = (defaultModel: string = OLLAMA_CONFIG.defaultModel)
     isLoading,
     currentModel,
     serverStatus,
-    
+
     // Chat management state
     currentChatId,
     chatTitle,
     isRestoring,
-    
+
     // Actions
-    setCurrentModel,
+    setCurrentModel: handleModelChange,
     sendMessage,
     addMessage,
     updateMessage,
@@ -566,7 +594,7 @@ export const useOllamaChat = (defaultModel: string = OLLAMA_CONFIG.defaultModel)
     regenerateLastResponse,
     checkServerStatus,
     configureStreaming,
-    
+
     // Chat management actions
     initializeNewChat,
     restoreChat,
