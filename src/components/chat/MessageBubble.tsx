@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import type { Message } from "../../types/index";
 import MarkdownRenderer from "./MarkdownRenderer";
 import {
@@ -11,6 +11,8 @@ import {
   PhotoIcon,
   ClockIcon,
   StopIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
 } from "@heroicons/react/24/outline";
 
 interface MessageBubbleProps {
@@ -34,6 +36,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   onStopGeneration,
   darkMode = false,
 }) => {
+  const [showThinks, setShowThinks] = useState<{ [key: number]: boolean }>({});
+
   const formatTimestamp = (timestamp: Date) => {
     return new Intl.DateTimeFormat("en-US", {
       hour: "2-digit",
@@ -54,6 +58,24 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     message.content.includes("1. ") ||
     message.content.includes("> ") ||
     message.content.includes("`");
+
+  function extractThinkBlocks(content: string) {
+    const regex = /<think>([\s\S]*?)<\/think>/g;
+    const thinks: string[] = [];
+    let mainContent = content;
+    let match;
+    let i = 0;
+    while ((match = regex.exec(content)) !== null) {
+      thinks.push(match[1].trim());
+      mainContent = mainContent.replace(match[0], `[[THINK_BLOCK_${i}]]`);
+      i++;
+    }
+    return { mainContent, thinks };
+  }
+
+  const { mainContent, thinks } = extractThinkBlocks(message.content);
+  const hasUnclosedThink =
+    message.isLoading && /<think>(?![\s\S]*<\/think>)/.test(message.content);
 
   return (
     <div className="flex gap-4 max-w-4xl mx-auto">
@@ -137,25 +159,90 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               : ""
           }`}
         >
-          {message.isLoading && !message.content ? (
+          {hasUnclosedThink ? (
+            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-gray-600"></div>
+              <span>Thinking...</span>
+            </div>
+          ) : message.isLoading && !message.content ? (
             <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-gray-600"></div>
               <span>Thinking...</span>
             </div>
           ) : (
             <div className="relative">
-              {isMarkdown ? (
-                <MarkdownRenderer
-                  content={message.content}
-                  darkMode={darkMode}
-                  className={message.type === "user" ? "prose-sm" : ""}
-                />
-              ) : (
-                <p className="text-gray-800 dark:text-neutral-200 whitespace-pre-wrap leading-relaxed">
-                  {message.content}
-                </p>
-              )}
-              {/* Streaming cursor indicator */}
+              {(() => {
+                let rendered = mainContent;
+                thinks.forEach((_, i) => {
+                  rendered = rendered.replace(
+                    `[[THINK_BLOCK_${i}]]`,
+                    `<THINK_PLACEHOLDER_${i}/>`
+                  );
+                });
+                const parts = rendered.split(/<THINK_PLACEHOLDER_(\d+)\/>/g);
+                return parts.map((part, idx) => {
+                  if (/^\d+$/.test(part)) {
+                    const thinkIdx = parseInt(part, 10);
+                    return (
+                      <div key={"think-" + thinkIdx} className="my-2">
+                        <button
+                          className="flex items-center w-full text-xs px-3 py-2 rounded bg-gray-50 dark:bg-neutral-900/40 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 border border-gray-200 dark:border-blue-700 transition-colors select-none focus:outline-none focus:ring-2 focus:ring-blue-400"
+                          aria-expanded={
+                            showThinks[thinkIdx] ? "true" : "false"
+                          }
+                          aria-controls={`think-panel-${thinkIdx}`}
+                          tabIndex={0}
+                          type="button"
+                          onClick={() =>
+                            setShowThinks((prev) => ({
+                              ...prev,
+                              [thinkIdx]: !prev[thinkIdx],
+                            }))
+                          }
+                        >
+                          {showThinks[thinkIdx] ? (
+                            <ChevronUpIcon className="w-4 h-4 mr-2" />
+                          ) : (
+                            <ChevronDownIcon className="w-4 h-4 mr-2" />
+                          )}
+                          {showThinks[thinkIdx]
+                            ? "Hide reasoning"
+                            : "Show reasoning"}
+                        </button>
+                        <div
+                          id={`think-panel-${thinkIdx}`}
+                          hidden={!showThinks[thinkIdx]}
+                          className="mt-2 p-3 border border-dashed border-blue-300 dark:border-blue-700 rounded bg-blue-50 dark:bg-blue-900/30 text-xs"
+                        >
+                          <MarkdownRenderer
+                            content={thinks[thinkIdx]}
+                            darkMode={darkMode}
+                            className="prose-xs"
+                          />
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    return part.trim() ? (
+                      isMarkdown ? (
+                        <MarkdownRenderer
+                          key={"main-" + idx}
+                          content={part}
+                          darkMode={darkMode}
+                          className={message.type === "user" ? "prose-sm" : ""}
+                        />
+                      ) : (
+                        <p
+                          key={"main-" + idx}
+                          className="text-gray-800 dark:text-neutral-200 whitespace-pre-wrap leading-relaxed"
+                        >
+                          {part}
+                        </p>
+                      )
+                    ) : null;
+                  }
+                });
+              })()}
               {message.isLoading && message.content && (
                 <span
                   className="inline-block w-0.5 h-5 bg-blue-600 dark:bg-blue-400 ml-1 animate-pulse"
