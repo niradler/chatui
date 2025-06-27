@@ -352,7 +352,7 @@ export const useChatUI = () => {
   }, [flushStreamingBuffer]);
 
   // End streaming and finalize message
-  const endStreaming = useCallback((finalContent?: string, metadata?: any) => {
+  const endStreaming = useCallback((finalContent?: string, metadata?: Message['metadata']) => {
     const buffer = streamingBufferRef.current;
 
     if (!buffer.isStreaming || !buffer.messageId) {
@@ -384,6 +384,11 @@ export const useChatUI = () => {
     buffer.messageId = '';
     buffer.fullContent = '';
     buffer.chunks = [];
+
+    // TODO: fix this issue later
+    document
+      .querySelectorAll('div[id^="dmermaid-"]')
+      .forEach((div) => div.remove());
 
   }, [updateMessage, flushStreamingBuffer]);
 
