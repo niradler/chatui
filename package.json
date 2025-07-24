@@ -1,13 +1,49 @@
 {
-  "name": "chatui",
+  "name": "chatoui",
   "private": false,
   "version": "0.0.1",
   "type": "module",
+  "description": "A beautiful, modern chat interface for interacting with your local Ollama server",
+  "keywords": [
+    "chat",
+    "ollama",
+    "ai",
+    "react",
+    "typescript",
+    "ui",
+    "interface"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/niradler/chatui.git"
+  },
+  "homepage": "https://github.com/niradler/chatui#readme",
+  "bugs": {
+    "url": "https://github.com/niradler/chatui/issues"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.es.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prepare": "npm run build"
   },
   "dependencies": {
     "@heroicons/react": "^2.0.18",
