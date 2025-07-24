@@ -12,6 +12,7 @@ interface MarkdownRendererProps {
   content: string;
   darkMode?: boolean;
   className?: string;
+  isChatComplete?: boolean;
 }
 
 // Initialize mermaid
@@ -23,84 +24,163 @@ mermaid.initialize({
   fontSize: 14,
 });
 
-const MermaidDiagram: React.FC<{ chart: string; darkMode?: boolean }> = ({
-  chart,
-  darkMode,
-}) => {
+const MermaidDiagram: React.FC<{
+  chart: string;
+  darkMode?: boolean;
+  isChatComplete?: boolean;
+}> = ({ chart, darkMode, isChatComplete = true }) => {
   const ref = useRef<HTMLDivElement>(null);
-  const lastRenderId = useRef<string | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const [svg, setSvg] = React.useState<string | null>(null);
+  const [retryCount, setRetryCount] = React.useState(0);
+  const renderTimeoutRef = useRef<number | null>(null);
+
+  const renderDiagram = async (cancelled: boolean) => {
+    try {
+      mermaid.initialize({
+        theme: darkMode ? "dark" : "default",
+        securityLevel: "loose",
+        startOnLoad: false,
+      });
+
+      const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+
+      const result = await mermaid.render(id, chart);
+
+      if (!cancelled) {
+        setSvg(result.svg);
+        setError(null);
+      }
+    } catch (error: unknown) {
+      if (!cancelled) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        setError(
+          errMsg || "Failed to render diagram. Please check the syntax."
+        );
+        setSvg(null);
+      }
+    } finally {
+      if (!cancelled) {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const validateAndRender = async (cancelled: boolean) => {
+    if (!chart.trim()) {
+      setError("Empty diagram content");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!isChatComplete && !chart.includes("```")) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      await renderDiagram(cancelled);
+    } catch (error: unknown) {
+      if (!cancelled) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        setError(errMsg || "Failed to render diagram");
+        setIsLoading(false);
+      }
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+    setSvg(null);
+
     if (ref.current) {
       ref.current.innerHTML = "";
-      let errorHtml = "";
-      try {
-        // Only re-initialize if theme changes
-        mermaid.initialize({
-          theme: darkMode ? "dark" : "default",
-          securityLevel: "loose",
-          startOnLoad: true,
-        });
-      } catch (error: unknown) {
-        const errMsg = error instanceof Error ? error.message : String(error);
-        errorHtml = `
-          <div class="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
-            <p class="font-medium">Mermaid Initialization Error</p>
-            <p class="text-sm mt-1">${
-              errMsg || "Failed to initialize Mermaid."
-            }</p>
-            <details class="mt-2">
-              <summary class="cursor-pointer text-sm">Show raw content</summary>
-              <pre class="mt-2 text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded overflow-x-auto">${chart}</pre>
-            </details>
-          </div>
-        `;
-        if (ref.current) ref.current.innerHTML = errorHtml;
-        return;
-      }
-
-      // Generate unique ID for each diagram render
-      const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
-      lastRenderId.current = id;
-
-      mermaid
-        .render(id, chart)
-        .then(({ svg }) => {
-          if (!cancelled && ref.current && lastRenderId.current === id) {
-            ref.current.innerHTML = svg;
-          }
-        })
-        .catch((error: unknown) => {
-          const errMsg = error instanceof Error ? error.message : String(error);
-          if (!cancelled && ref.current && lastRenderId.current === id) {
-            ref.current.innerHTML = `
-            <div class="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
-              <p class="font-medium">Mermaid Diagram Error</p>
-              <p class="text-sm mt-1">${
-                errMsg || "Failed to render diagram. Please check the syntax."
-              }</p>
-              <details class="mt-2">
-                <summary class="cursor-pointer text-sm">Show raw content</summary>
-                <pre class="mt-2 text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded overflow-x-auto">${chart}</pre>
-              </details>
-            </div>
-          `;
-          }
-        });
     }
+
+    if (isChatComplete) {
+      renderTimeoutRef.current = setTimeout(
+        () => validateAndRender(cancelled),
+        300
+      );
+    } else {
+      setIsLoading(false);
+    }
+
     return () => {
       cancelled = true;
+      if (renderTimeoutRef.current) {
+        clearTimeout(renderTimeoutRef.current);
+      }
     };
-  }, [chart, darkMode]);
+  }, [chart, darkMode, isChatComplete]);
 
-  return <div ref={ref} className="my-4" />;
+  if (isLoading) {
+    return (
+      <div className="my-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center space-x-2">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+          <span className="text-sm text-gray-600 dark:text-gray-400">
+            Rendering diagram...
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="my-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+        <div className="flex items-center justify-between mb-2">
+          <p className="font-medium">Mermaid Diagram Error</p>
+          {retryCount < 3 && (
+            <button
+              onClick={() => {
+                setError(null);
+                setRetryCount((prev) => prev + 1);
+                setIsLoading(true);
+                renderTimeoutRef.current = setTimeout(
+                  () => validateAndRender(false),
+                  300
+                );
+              }}
+              className="text-xs px-2 py-1 bg-red-100 hover:bg-red-200 dark:bg-red-800 dark:hover:bg-red-700 rounded transition-colors"
+            >
+              Retry
+            </button>
+          )}
+        </div>
+        <p className="text-sm mt-1">{error}</p>
+        <details className="mt-2">
+          <summary className="cursor-pointer text-sm">Show raw content</summary>
+          <pre className="mt-2 text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded overflow-x-auto">
+            {chart}
+          </pre>
+        </details>
+      </div>
+    );
+  }
+
+  if (svg) {
+    return (
+      <div
+        ref={ref}
+        className="my-4"
+        dangerouslySetInnerHTML={{ __html: svg }}
+      />
+    );
+  }
+
+  return null;
 };
 
 const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   content,
   darkMode = false,
   className = "",
+  isChatComplete = true,
 }) => {
   return (
     <div
@@ -111,7 +191,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          code({ node, className, children, ...props }) {
+          code({ className, children, ...props }) {
             const inline = !className;
             const match = /language-(\w+)/.exec(className || "");
             const language = match ? match[1] : "";
@@ -122,6 +202,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
                 <MermaidDiagram
                   chart={String(children).trim()}
                   darkMode={darkMode}
+                  isChatComplete={isChatComplete}
                 />
               );
             }
@@ -156,7 +237,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
             }
 
             // Handle inline code
-            const { ref, ...restProps } = props;
+            const { ...restProps } = props;
             return (
               <code
                 className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-sm font-mono"

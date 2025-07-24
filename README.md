@@ -2,7 +2,7 @@
 
 A beautiful, modern chat interface for interacting with your local Ollama server. This is a clean alternative to ChatGPT that runs entirely on your local machine.
 
-![demo](docs/chatui.png)
+![demo](docs/demo.gif)
 
 ## Features
 

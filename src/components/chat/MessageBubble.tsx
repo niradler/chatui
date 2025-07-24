@@ -218,6 +218,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                             content={thinks[thinkIdx]}
                             darkMode={darkMode}
                             className="prose-xs"
+                            isChatComplete={!message.isLoading}
                           />
                         </div>
                       </div>
@@ -230,6 +231,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                           content={part}
                           darkMode={darkMode}
                           className={message.type === "user" ? "prose-sm" : ""}
+                          isChatComplete={!message.isLoading}
                         />
                       ) : (
                         <p

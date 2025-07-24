@@ -1,46 +1,17 @@
-// Ollama Configuration
-export const OLLAMA_CONFIG = {
-    // Default Ollama server URL
-    baseUrl: 'http://localhost:11434',
+/**
+ * Configuration Module - Main Entry Point
+ * 
+ * This module exports the main configuration system for the ChatUI application.
+ * It provides backward compatibility with the existing configuration while
+ * introducing the new comprehensive configuration system.
+ */
 
-    // Enable streaming responses (recommended)
-    enableStreaming: true,
+// Re-export the new configuration system
+export * from './app.config';
+export { default as appConfig } from './app.config';
 
-    // Request timeout in milliseconds
-    requestTimeout: 30000, // 30 seconds
+// Export legacy configuration for backward compatibility
+export * from './legacy.config';
 
-    // Server check timeout in milliseconds
-    serverCheckTimeout: 5000, // 5 seconds
-};
-
-// App Configuration
-export const APP_CONFIG = {
-    // App name displayed in the UI
-    appName: 'ChatUI',
-
-    // Maximum number of chat history items to display
-    maxChatHistory: 50,
-
-    // Auto-save chat interval (in milliseconds, 0 to disable)
-    autoSaveInterval: 0,
-
-    // Enable debug logging
-    debugMode: false,
-};
-
-// UI Configuration
-export const UI_CONFIG = {
-    // Default theme ('light', 'dark', or 'auto')
-    defaultTheme: 'auto',
-
-    // Enable animations
-    enableAnimations: true,
-
-    // Message display options
-    showTimestamps: false,
-    showMessageActions: true,
-
-    // Input options
-    maxInputLength: 4000,
-    showCharacterCount: false,
-};
+// Export configuration utilities
+export { ConfigProvider, useConfig, useFeatures, useUIConfig, useChatConfig } from '../contexts/ConfigContext';

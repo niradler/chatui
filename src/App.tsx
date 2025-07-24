@@ -7,13 +7,19 @@ import {
   LightBulbIcon,
   CodeBracketIcon,
   QuestionMarkCircleIcon,
+  Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
+
+// Configuration and Internationalization
+import { ConfigProvider, useConfig, useFeatures } from "./contexts/ConfigContext";
+import { I18nProvider, useI18n, TranslationLoader } from "./i18n";
 
 // Components
 import Sidebar from "./components/sidebar/Sidebar";
 import ChatMessages from "./components/chat/ChatMessages";
 import ChatInput from "./components/chat/ChatInput";
 import ModelSelector from "./components/ModelSelector";
+import SettingsModal from "./components/SettingsModal";
 import { ToastProvider } from "./components/Toast";
 
 // Hooks
@@ -39,14 +45,16 @@ declare global {
   }
 }
 
-const App: React.FC = () => {
+// ==================== MAIN APP COMPONENT ====================
+const AppContent: React.FC = () => {
   const [inputValue, setInputValue] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [userPreferences] = useState({
-    theme: "auto",
-    language: "en",
-    notifications: true,
-  });
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Configuration and features
+  const { config, isConfigLoaded } = useConfig();
+  const { isFeatureEnabled } = useFeatures();
+  const { t } = useI18n();
 
   const { darkMode, toggleDarkMode } = useDarkMode();
   const { textareaRef } = useAutoResize(inputValue);
@@ -91,18 +99,20 @@ const App: React.FC = () => {
     checkServerStatus();
   }, [checkServerStatus]);
 
-  // Configure streaming for optimal UX
+  // Configure streaming based on configuration
   useEffect(() => {
-    configureStreaming({
-      chunkSize: 2, // Show every 2 chunks for smooth reading
-      displayInterval: 80, // Max 80ms between displays for responsive feel
-    });
+    if (isConfigLoaded) {
+      configureStreaming({
+        chunkSize: config.chat.streamingChunkSize,
+        displayInterval: config.chat.streamingInterval,
+      });
 
-    // Expose configureStreaming globally for testing (remove in production)
-    if (typeof window !== "undefined") {
-      window.configureStreaming = configureStreaming;
+      // Expose configureStreaming globally for testing if debug mode is enabled
+      if (config.features.debugMode && typeof window !== "undefined") {
+        window.configureStreaming = configureStreaming;
+      }
     }
-  }, [configureStreaming]);
+  }, [configureStreaming, config, isConfigLoaded]);
 
   // Handle new chat
   const handleNewChat = useCallback(() => {
@@ -119,11 +129,9 @@ const App: React.FC = () => {
       try {
         setSidebarOpen(false);
 
-        // Load chat state
         const chatState = loadChatState(chatId);
 
         if (chatState) {
-          // Restore the complete chat state
           await restoreChat({
             id: chatState.id!,
             title: chatState.title,
@@ -133,15 +141,15 @@ const App: React.FC = () => {
             updatedAt: chatState.updatedAt,
           });
 
-          showSuccess(`Successfully restored chat: ${chatState.title}`);
+          showSuccess(t('success.chatDeleted'));
         } else {
-          showError("Chat not found");
+          showError(t('errors.chatLoadFailed'));
         }
       } catch {
-        showError("Failed to restore chat");
+        showError(t('errors.chatLoadFailed'));
       }
     },
-    [loadChatState, restoreChat, showSuccess, showError]
+    [loadChatState, restoreChat, showSuccess, showError, t]
   );
 
   // Handle chat deletion
@@ -150,27 +158,27 @@ const App: React.FC = () => {
       try {
         await deleteChat(chatId);
 
-        // If we deleted the current chat, start a new one
         if (currentChatId === chatId) {
           handleNewChat();
         }
       } catch {
-        showError("Failed to delete chat");
+        showError(t('errors.chatDeleteFailed'));
       }
     },
-    [deleteChat, currentChatId, handleNewChat, showError]
+    [deleteChat, currentChatId, handleNewChat, showError, t]
   );
 
-  // Auto-save chat when messages change
+  // Auto-save chat when messages change (if enabled)
   useEffect(() => {
-    if (messages.length > 0) {
+    if (messages.length > 0 && isFeatureEnabled('autoSave')) {
       const currentState = getCurrentChatState();
       const cleanup = createAutoSave(currentState);
       return cleanup;
     }
-  }, [messages, getCurrentChatState, createAutoSave]);
+  }, [messages, getCurrentChatState, createAutoSave, isFeatureEnabled]);
 
-  const suggestedPrompts: SuggestedPrompt[] = [
+  // Suggested prompts based on configuration
+  const suggestedPrompts: SuggestedPrompt[] = isFeatureEnabled('suggestedPrompts') ? [
     {
       id: "1",
       text: "Explain React hooks with examples",
@@ -201,7 +209,7 @@ const App: React.FC = () => {
       text: "Explain async/await in JavaScript",
       icon: <CodeBracketIcon className="w-4 h-4" />,
     },
-  ];
+  ] : [];
 
   const handleSubmit = useCallback(
     async (
@@ -236,24 +244,16 @@ const App: React.FC = () => {
     [handleSubmit]
   );
 
-  const handleLike = useCallback(() => {
-    // You can implement feedback storage here
-  }, []);
-
-  const handleDislike = useCallback(() => {
-    // You can implement feedback storage here
-  }, []);
-
   const handleCopy = useCallback(
     async (content: string) => {
       try {
         await navigator.clipboard.writeText(content);
-        showSuccess("Content copied to clipboard");
+        showSuccess(t('success.copied'));
       } catch {
-        showError("Failed to copy content");
+        showError(t('errors.unknownError'));
       }
     },
-    [showSuccess, showError]
+    [showSuccess, showError, t]
   );
 
   const handlePromptClick = useCallback(
@@ -265,8 +265,10 @@ const App: React.FC = () => {
   );
 
   const handleFileUpload = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
+    if (isFeatureEnabled('imageUpload')) {
+      fileInputRef.current?.click();
+    }
+  }, [isFeatureEnabled]);
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -276,7 +278,6 @@ const App: React.FC = () => {
           .map((file) => file.name)
           .join(", ");
 
-        // For now, just send a message about the files
         const message = `I can see you've uploaded: ${fileNames}. File processing will be implemented in a future update. How can I help you with these files?`;
         const syntheticEvent = { preventDefault: () => {} } as React.FormEvent;
         handleSubmit(syntheticEvent, message);
@@ -286,12 +287,14 @@ const App: React.FC = () => {
   );
 
   const handleExportChat = useCallback(async () => {
+    if (!isFeatureEnabled('messageExport')) return;
+
     const chatData = {
       messages,
       timestamp: new Date().toISOString(),
       theme: darkMode ? "dark" : "light",
       model: currentModel,
-      preferences: userPreferences,
+      appVersion: config.app.version,
     };
 
     const blob = new Blob([JSON.stringify(chatData, null, 2)], {
@@ -306,22 +309,18 @@ const App: React.FC = () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [messages, darkMode, currentModel, userPreferences]);
+
+    showSuccess(t('success.chatExported'));
+  }, [messages, darkMode, currentModel, config.app.version, isFeatureEnabled, showSuccess, t]);
 
   const handleShareChat = useCallback(async () => {
     if (navigator.share && messages.length > 0) {
       try {
         await navigator.share({
-          title: "ChatUI Conversation",
-          text: `Check out this AI conversation:\
-\
-${messages
-  .map((m: Message) => `${m.type}: ${m.content}`)
-  .join(
-    "\
-\
-"
-  )}`,
+          title: config.app.name,
+          text: `Check out this AI conversation:\n\n${messages
+            .map((m: Message) => `${m.type}: ${m.content}`)
+            .join("\n\n")}`,
           url: window.location.href,
         });
       } catch (err) {
@@ -329,58 +328,66 @@ ${messages
         handleCopy(
           messages
             .map((m: Message) => `${m.type}: ${m.content}`)
-            .join(
-              "\
-\
-"
-            )
+            .join("\n\n")
         );
       }
     } else {
-      // Fallback to copy
       handleCopy(
         messages
           .map((m: Message) => `${m.type}: ${m.content}`)
-          .join(
-            "\
-\
-"
-          )
+          .join("\n\n")
       );
     }
-  }, [messages, handleCopy]);
+  }, [messages, handleCopy, config.app.name]);
+
+  // Wait for configuration to load
+  if (!isConfigLoaded) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-white dark:bg-neutral-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-neutral-400">{t('common.loading')}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`${darkMode ? "dark" : ""}`}>
       <ToastProvider />
       <div className="flex h-screen bg-white dark:bg-neutral-900 text-gray-900 dark:text-white">
         {/* Sidebar */}
-        <Sidebar
-          isOpen={sidebarOpen}
-          darkMode={darkMode}
-          chatHistory={chatHistory}
-          onNewChat={handleNewChat}
-          onToggleDarkMode={toggleDarkMode}
-          onSelectChat={handleSelectChat}
-          onDeleteChat={handleDeleteChat}
-          onExportChat={handleExportChat}
-          onShareChat={handleShareChat}
-          onUpgrade={() => console.log("Upgrade clicked")}
-        />
+        {isFeatureEnabled('chatHistory') && (
+          <Sidebar
+            isOpen={sidebarOpen}
+            darkMode={darkMode}
+            chatHistory={chatHistory}
+            onNewChat={handleNewChat}
+            onToggleDarkMode={toggleDarkMode}
+            onSelectChat={handleSelectChat}
+            onDeleteChat={handleDeleteChat}
+            onExportChat={handleExportChat}
+            onShareChat={handleShareChat}
+            onUpgrade={() => console.log("Upgrade clicked")}
+          />
+        )}
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col lg:ml-0">
           {/* Mobile Header */}
           <div className="lg:hidden flex items-center justify-between p-4 border-b border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-800 transition-colors"
-            >
-              <Bars3Icon className="w-5 h-5" />
-            </button>
+            {isFeatureEnabled('chatHistory') && (
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-800 transition-colors"
+              >
+                <Bars3Icon className="w-5 h-5" />
+              </button>
+            )}
+            
             <div className="flex-1 text-center">
               <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {isRestoring ? "Restoring..." : chatTitle}
+                {isRestoring ? t('common.loading') : chatTitle}
               </h1>
               {currentChatId && (
                 <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -388,16 +395,28 @@ ${messages
                 </div>
               )}
             </div>
-            <button
-              onClick={toggleDarkMode}
-              className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-800 transition-colors"
-            >
-              {darkMode ? (
-                <SunIcon className="w-5 h-5" />
-              ) : (
-                <MoonIcon className="w-5 h-5" />
+            
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setSettingsOpen(true)}
+                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-800 transition-colors"
+              >
+                <Cog6ToothIcon className="w-5 h-5" />
+              </button>
+              
+              {isFeatureEnabled('darkMode') && (
+                <button
+                  onClick={toggleDarkMode}
+                  className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-800 transition-colors"
+                >
+                  {darkMode ? (
+                    <SunIcon className="w-5 h-5" />
+                  ) : (
+                    <MoonIcon className="w-5 h-5" />
+                  )}
+                </button>
               )}
-            </button>
+            </div>
           </div>
 
           {/* Error Display */}
@@ -418,13 +437,15 @@ ${messages
           )}
 
           {/* Model Selector */}
-          <div className="p-4 border-b border-gray-200 dark:border-neutral-700">
-            <ModelSelector
-              currentModel={currentModel}
-              onModelChange={setCurrentModel}
-              serverStatus={serverStatus}
-            />
-          </div>
+          {isFeatureEnabled('modelSelector') && (
+            <div className="p-4 border-b border-gray-200 dark:border-neutral-700">
+              <ModelSelector
+                currentModel={currentModel}
+                onModelChange={setCurrentModel}
+                serverStatus={serverStatus}
+              />
+            </div>
+          )}
 
           {/* Messages Area */}
           <ChatMessages
@@ -433,16 +454,13 @@ ${messages
             suggestedPrompts={suggestedPrompts}
             messagesEndRef={messagesEndRef}
             onPromptClick={handlePromptClick}
-            // onLike={handleLike}
-            // onDislike={handleDislike}
             onCopy={handleCopy}
-            // onShare={(messageId) => {
-            //   const message = messages.find((m: Message) => m.id === messageId);
-            //   if (message) handleCopy(message.content);
-            // }}
-            onRegenerate={() => regenerateLastResponse()}
+            onRegenerate={() => isFeatureEnabled('messageRegeneration') && regenerateLastResponse()}
             onStopGeneration={stopGeneration}
             darkMode={darkMode}
+            showWelcome={isFeatureEnabled('welcomeScreen')}
+            showActions={isFeatureEnabled('messageActions')}
+            showTimestamps={config.ui.showTimestamps}
           />
 
           {/* Input Area */}
@@ -453,24 +471,35 @@ ${messages
             onKeyDown={handleKeyDown}
             isLoading={isLoading}
             textareaRef={textareaRef}
-            onFileUpload={handleFileUpload}
-            onVoiceInput={() => console.log("Voice input not implemented yet")}
+            onFileUpload={isFeatureEnabled('imageUpload') ? handleFileUpload : undefined}
+            onVoiceInput={isFeatureEnabled('voiceInput') ? () => console.log("Voice input not implemented yet") : undefined}
             currentModel={currentModel}
+            maxLength={config.ui.maxInputLength}
+            showCharacterCount={config.ui.showCharacterCount}
+            placeholder={t('chat.inputPlaceholder')}
           />
 
           {/* Hidden file input */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            onChange={handleFileChange}
-            className="hidden"
-            accept=".txt,.pdf,.doc,.docx,.jpg,.png,.gif"
-          />
+          {isFeatureEnabled('imageUpload') && (
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              onChange={handleFileChange}
+              className="hidden"
+              accept=".txt,.pdf,.doc,.docx,.jpg,.png,.gif"
+            />
+          )}
         </div>
 
+        {/* Settings Modal */}
+        <SettingsModal
+          isOpen={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+        />
+
         {/* Mobile Sidebar Overlay */}
-        {sidebarOpen && (
+        {sidebarOpen && isFeatureEnabled('chatHistory') && (
           <div
             className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
             onClick={() => setSidebarOpen(false)}
@@ -478,6 +507,19 @@ ${messages
         )}
       </div>
     </div>
+  );
+};
+
+// ==================== APP WRAPPER WITH PROVIDERS ====================
+const App: React.FC = () => {
+  return (
+    <ConfigProvider>
+      <I18nProvider>
+        <TranslationLoader>
+          <AppContent />
+        </TranslationLoader>
+      </I18nProvider>
+    </ConfigProvider>
   );
 };
 

@@ -20,6 +20,8 @@ interface ChatInputProps {
   onVoiceInput?: () => void;
   maxLength?: number;
   currentModel?: string;
+  showCharacterCount?: boolean;
+  placeholder?: string;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -33,6 +35,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
   onVoiceInput,
   maxLength = 4000,
   currentModel = "",
+  showCharacterCount = false,
+  placeholder = "Ask me anything... (Shift+Enter for new line)",
 }) => {
   const [images, setImages] = useState<MessageImage[]>([]);
   const [showImageUpload, setShowImageUpload] = useState(false);
@@ -138,7 +142,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
               value={value}
               onChange={(e) => onChange(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask me anything... (Shift+Enter for new line)"
+              placeholder={placeholder}
               className="w-full p-4 bg-transparent resize-none border-0 focus:ring-0 focus:outline-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-neutral-400 leading-relaxed"
               rows={1}
               style={{
@@ -206,9 +210,11 @@ const ChatInput: React.FC<ChatInputProps> = ({
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400 dark:text-neutral-500">
-                  {value.length}/{maxLength}
-                </span>
+                {showCharacterCount && (
+                  <span className="text-xs text-gray-400 dark:text-neutral-500">
+                    {value.length}/{maxLength}
+                  </span>
+                )}
                 <button
                   type="submit"
                   disabled={(!value.trim() && images.length === 0) || isLoading}

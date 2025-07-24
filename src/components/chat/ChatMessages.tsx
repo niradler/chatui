@@ -17,6 +17,9 @@ interface ChatMessagesProps {
   onRegenerate?: (messageId: string) => void;
   onStopGeneration: () => void;
   darkMode?: boolean;
+  showWelcome?: boolean;
+  showActions?: boolean;
+  showTimestamps?: boolean;
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({
@@ -32,14 +35,21 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   onRegenerate,
   onStopGeneration,
   darkMode = false,
+  showWelcome = true,
+  // showActions = true,
+  // showTimestamps = false,
 }) => {
   return (
     <div className="flex-1 overflow-y-auto scrollbar-thin">
-      {messages.length === 0 ? (
+      {messages.length === 0 && showWelcome ? (
         <WelcomeScreen
           suggestedPrompts={suggestedPrompts}
           onPromptClick={onPromptClick}
         />
+      ) : messages.length === 0 ? (
+        <div className="flex items-center justify-center h-full text-gray-500 dark:text-neutral-400">
+          <p>Start a conversation...</p>
+        </div>
       ) : (
         <div className="p-4 space-y-6">
           {messages.map((message) => (
