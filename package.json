@@ -13,7 +13,7 @@
     "ui",
     "interface"
   ],
-  "author": "Your Name <your.email@example.com>",
+  "author": "Nir Adler",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -23,8 +23,8 @@
   "bugs": {
     "url": "https://github.com/niradler/chatui/issues"
   },
-  "main": "dist/index.js",
   "module": "dist/index.es.js",
+  "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist",
@@ -34,8 +34,8 @@
   "exports": {
     ".": {
       "import": "./dist/index.es.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js"
     }
   },
   "scripts": {
@@ -43,7 +43,11 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "docker:build": "docker build -t chatui .",
+    "docker:run": "docker run -p 3000:80 chatui",
+    "docker:dev": "docker run -p 5173:5173 -v $(pwd):/app -v /app/node_modules chatui-dev pnpm dev --host 0.0.0.0",
+    "docker:stop": "docker stop $(docker ps -q --filter ancestor=chatui)"
   },
   "dependencies": {
     "@heroicons/react": "^2.0.18",
