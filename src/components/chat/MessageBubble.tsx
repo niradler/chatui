@@ -34,7 +34,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   onShare,
   onRegenerate,
   onStopGeneration,
-  darkMode = false,
+  darkMode = true,
 }) => {
   const [showThinks, setShowThinks] = useState<{ [key: number]: boolean }>({});
 
@@ -214,14 +214,30 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                           hidden={!showThinks[thinkIdx]}
                           className="mt-2 p-3 border border-dashed border-blue-300 dark:border-blue-700 rounded bg-blue-50 dark:bg-blue-900/30 text-xs"
                         >
-                          <Streamdown>{thinks[thinkIdx]}</Streamdown>
+                          <Streamdown
+                            parseIncompleteMarkdown={false}
+                            shikiTheme={[
+                              "github-dark-default",
+                              "github-dark-default",
+                            ]}
+                          >
+                            {thinks[thinkIdx]}
+                          </Streamdown>
                         </div>
                       </div>
                     );
                   } else {
                     return part.trim() ? (
                       isMarkdown ? (
-                        <Streamdown>{part}</Streamdown>
+                        <Streamdown
+                          parseIncompleteMarkdown={false}
+                          shikiTheme={[
+                            "github-dark-default",
+                            "github-dark-default",
+                          ]}
+                        >
+                          {part}
+                        </Streamdown>
                       ) : (
                         <p
                           key={"main-" + idx}
