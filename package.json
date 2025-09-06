@@ -41,30 +41,25 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "eslint .",
     "preview": "vite preview",
-    "prepare": "npm run build",
-    "docker:build": "docker build -t chatui .",
-    "docker:run": "docker run -p 3000:80 chatui",
-    "docker:dev": "docker run -p 5173:5173 -v $(pwd):/app -v /app/node_modules chatui-dev pnpm dev --host 0.0.0.0",
-    "docker:stop": "docker stop $(docker ps -q --filter ancestor=chatui)"
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "type-check": "tsc --noEmit",
+    "docker:build": "docker buildx build --platform linux/amd64,linux/arm64 -t niradler/chatui:latest --push .",
+    "docker:run": "docker run -p 3000:80 chatui"
   },
   "dependencies": {
     "@heroicons/react": "^2.0.18",
-    "mermaid": "^10.6.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-dropzone": "^14.2.3",
     "react-hot-toast": "^2.5.2",
-    "react-markdown": "^9.0.1",
-    "react-syntax-highlighter": "^15.5.0",
-    "remark-gfm": "^4.0.0"
+    "streamdown": "^1.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
-    "@types/react-syntax-highlighter": "^15.5.11",
     "@vitejs/plugin-react": "^4.4.1",
     "autoprefixer": "^10.4.16",
     "eslint": "^9.25.0",

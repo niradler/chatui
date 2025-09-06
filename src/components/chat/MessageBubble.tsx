@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import type { Message } from "../../types/index";
-import MarkdownRenderer from "./MarkdownRenderer";
+import { Streamdown } from "streamdown";
 import {
   HandThumbUpIcon,
   HandThumbDownIcon,
@@ -214,25 +214,14 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                           hidden={!showThinks[thinkIdx]}
                           className="mt-2 p-3 border border-dashed border-blue-300 dark:border-blue-700 rounded bg-blue-50 dark:bg-blue-900/30 text-xs"
                         >
-                          <MarkdownRenderer
-                            content={thinks[thinkIdx]}
-                            darkMode={darkMode}
-                            className="prose-xs"
-                            isChatComplete={!message.isLoading}
-                          />
+                          <Streamdown>{thinks[thinkIdx]}</Streamdown>
                         </div>
                       </div>
                     );
                   } else {
                     return part.trim() ? (
                       isMarkdown ? (
-                        <MarkdownRenderer
-                          key={"main-" + idx}
-                          content={part}
-                          darkMode={darkMode}
-                          className={message.type === "user" ? "prose-sm" : ""}
-                          isChatComplete={!message.isLoading}
-                        />
+                        <Streamdown>{part}</Streamdown>
                       ) : (
                         <p
                           key={"main-" + idx}
