@@ -8,12 +8,12 @@ RUN corepack enable pnpm
 WORKDIR /app
 
 # Copy package files
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml tailwind.config.mjs vite.config.ts ./
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
+# Copy source code and config files
 COPY . .
 
 # Build stage
