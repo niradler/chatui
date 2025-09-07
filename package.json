@@ -19,7 +19,7 @@
     "type": "git",
     "url": "https://github.com/niradler/chatui.git"
   },
-  "homepage": "https://github.com/niradler/chatui#readme",
+  "homepage": "https://niradler.github.io/chatui",
   "bugs": {
     "url": "https://github.com/niradler/chatui/issues"
   },
@@ -45,6 +45,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit",
+    "predeploy": "pnpm run build",
+    "deploy": "gh-pages -d dist",
     "docker:build": "docker buildx build --platform linux/amd64,linux/arm64 -t niradler/chatui:latest --push .",
     "docker:run": "docker run -p 3000:80 chatui"
   },
@@ -65,6 +67,7 @@
     "eslint": "^9.25.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
+    "gh-pages": "^6.2.0",
     "globals": "^16.0.0",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.4.0",
