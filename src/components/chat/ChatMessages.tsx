@@ -16,7 +16,6 @@ interface ChatMessagesProps {
   onShare?: (messageId: string) => void;
   onRegenerate?: (messageId: string) => void;
   onStopGeneration: () => void;
-  darkMode?: boolean;
   showWelcome?: boolean;
   showActions?: boolean;
   showTimestamps?: boolean;
@@ -34,7 +33,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   onShare,
   onRegenerate,
   onStopGeneration,
-  darkMode = false,
   showWelcome = true,
   // showActions = true,
   // showTimestamps = false,
@@ -62,7 +60,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
               onShare={onShare}
               onRegenerate={onRegenerate}
               onStopGeneration={onStopGeneration}
-              darkMode={darkMode}
             />
           ))}
 

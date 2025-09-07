@@ -23,7 +23,6 @@ interface MessageBubbleProps {
   onShare?: (messageId: string) => void;
   onRegenerate?: (messageId: string) => void;
   onStopGeneration?: () => void;
-  darkMode?: boolean;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({
@@ -34,7 +33,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   onShare,
   onRegenerate,
   onStopGeneration,
-  darkMode = true,
 }) => {
   const [showThinks, setShowThinks] = useState<{ [key: number]: boolean }>({});
 

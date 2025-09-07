@@ -11,7 +11,11 @@ import {
 } from "@heroicons/react/24/outline";
 
 // Configuration and Internationalization
-import { ConfigProvider, useConfig, useFeatures } from "./contexts/ConfigContext";
+import {
+  ConfigProvider,
+  useConfig,
+  useFeatures,
+} from "./contexts/ConfigContext";
 import { I18nProvider, useI18n, TranslationLoader } from "./i18n";
 
 // Components
@@ -141,12 +145,12 @@ const AppContent: React.FC = () => {
             updatedAt: chatState.updatedAt,
           });
 
-          showSuccess(t('success.chatDeleted'));
+          showSuccess(t("success.chatDeleted"));
         } else {
-          showError(t('errors.chatLoadFailed'));
+          showError(t("errors.chatLoadFailed"));
         }
       } catch {
-        showError(t('errors.chatLoadFailed'));
+        showError(t("errors.chatLoadFailed"));
       }
     },
     [loadChatState, restoreChat, showSuccess, showError, t]
@@ -162,7 +166,7 @@ const AppContent: React.FC = () => {
           handleNewChat();
         }
       } catch {
-        showError(t('errors.chatDeleteFailed'));
+        showError(t("errors.chatDeleteFailed"));
       }
     },
     [deleteChat, currentChatId, handleNewChat, showError, t]
@@ -170,7 +174,7 @@ const AppContent: React.FC = () => {
 
   // Auto-save chat when messages change (if enabled)
   useEffect(() => {
-    if (messages.length > 0 && isFeatureEnabled('autoSave')) {
+    if (messages.length > 0 && isFeatureEnabled("autoSave")) {
       const currentState = getCurrentChatState();
       const cleanup = createAutoSave(currentState);
       return cleanup;
@@ -178,38 +182,42 @@ const AppContent: React.FC = () => {
   }, [messages, getCurrentChatState, createAutoSave, isFeatureEnabled]);
 
   // Suggested prompts based on configuration
-  const suggestedPrompts: SuggestedPrompt[] = isFeatureEnabled('suggestedPrompts') ? [
-    {
-      id: "1",
-      text: "Explain React hooks with examples",
-      icon: <CodeBracketIcon className="w-4 h-4" />,
-    },
-    {
-      id: "2",
-      text: "What are the latest web development trends?",
-      icon: <RocketLaunchIcon className="w-4 h-4" />,
-    },
-    {
-      id: "3",
-      text: "Help me debug this JavaScript error",
-      icon: <QuestionMarkCircleIcon className="w-4 h-4" />,
-    },
-    {
-      id: "4",
-      text: "Best practices for responsive design",
-      icon: <LightBulbIcon className="w-4 h-4" />,
-    },
-    {
-      id: "5",
-      text: "How to optimize website performance?",
-      icon: <RocketLaunchIcon className="w-4 h-4" />,
-    },
-    {
-      id: "6",
-      text: "Explain async/await in JavaScript",
-      icon: <CodeBracketIcon className="w-4 h-4" />,
-    },
-  ] : [];
+  const suggestedPrompts: SuggestedPrompt[] = isFeatureEnabled(
+    "suggestedPrompts"
+  )
+    ? [
+        {
+          id: "1",
+          text: "Explain React hooks with examples",
+          icon: <CodeBracketIcon className="w-4 h-4" />,
+        },
+        {
+          id: "2",
+          text: "What are the latest web development trends?",
+          icon: <RocketLaunchIcon className="w-4 h-4" />,
+        },
+        {
+          id: "3",
+          text: "Help me debug this JavaScript error",
+          icon: <QuestionMarkCircleIcon className="w-4 h-4" />,
+        },
+        {
+          id: "4",
+          text: "Best practices for responsive design",
+          icon: <LightBulbIcon className="w-4 h-4" />,
+        },
+        {
+          id: "5",
+          text: "How to optimize website performance?",
+          icon: <RocketLaunchIcon className="w-4 h-4" />,
+        },
+        {
+          id: "6",
+          text: "Explain async/await in JavaScript",
+          icon: <CodeBracketIcon className="w-4 h-4" />,
+        },
+      ]
+    : [];
 
   const handleSubmit = useCallback(
     async (
@@ -248,9 +256,9 @@ const AppContent: React.FC = () => {
     async (content: string) => {
       try {
         await navigator.clipboard.writeText(content);
-        showSuccess(t('success.copied'));
+        showSuccess(t("success.copied"));
       } catch {
-        showError(t('errors.unknownError'));
+        showError(t("errors.unknownError"));
       }
     },
     [showSuccess, showError, t]
@@ -265,7 +273,7 @@ const AppContent: React.FC = () => {
   );
 
   const handleFileUpload = useCallback(() => {
-    if (isFeatureEnabled('imageUpload')) {
+    if (isFeatureEnabled("imageUpload")) {
       fileInputRef.current?.click();
     }
   }, [isFeatureEnabled]);
@@ -287,7 +295,7 @@ const AppContent: React.FC = () => {
   );
 
   const handleExportChat = useCallback(async () => {
-    if (!isFeatureEnabled('messageExport')) return;
+    if (!isFeatureEnabled("messageExport")) return;
 
     const chatData = {
       messages,
@@ -310,8 +318,16 @@ const AppContent: React.FC = () => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    showSuccess(t('success.chatExported'));
-  }, [messages, darkMode, currentModel, config.app.version, isFeatureEnabled, showSuccess, t]);
+    showSuccess(t("success.chatExported"));
+  }, [
+    messages,
+    darkMode,
+    currentModel,
+    config.app.version,
+    isFeatureEnabled,
+    showSuccess,
+    t,
+  ]);
 
   const handleShareChat = useCallback(async () => {
     if (navigator.share && messages.length > 0) {
@@ -326,16 +342,12 @@ const AppContent: React.FC = () => {
       } catch (err) {
         console.error("Error sharing:", err);
         handleCopy(
-          messages
-            .map((m: Message) => `${m.type}: ${m.content}`)
-            .join("\n\n")
+          messages.map((m: Message) => `${m.type}: ${m.content}`).join("\n\n")
         );
       }
     } else {
       handleCopy(
-        messages
-          .map((m: Message) => `${m.type}: ${m.content}`)
-          .join("\n\n")
+        messages.map((m: Message) => `${m.type}: ${m.content}`).join("\n\n")
       );
     }
   }, [messages, handleCopy, config.app.name]);
@@ -346,7 +358,9 @@ const AppContent: React.FC = () => {
       <div className="flex items-center justify-center h-screen bg-white dark:bg-neutral-900">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-neutral-400">{t('common.loading')}</p>
+          <p className="text-gray-600 dark:text-neutral-400">
+            {t("common.loading")}
+          </p>
         </div>
       </div>
     );
@@ -357,7 +371,7 @@ const AppContent: React.FC = () => {
       <ToastProvider />
       <div className="flex h-screen bg-white dark:bg-neutral-900 text-gray-900 dark:text-white">
         {/* Sidebar */}
-        {isFeatureEnabled('chatHistory') && (
+        {isFeatureEnabled("chatHistory") && (
           <Sidebar
             isOpen={sidebarOpen}
             darkMode={darkMode}
@@ -376,7 +390,7 @@ const AppContent: React.FC = () => {
         <div className="flex-1 flex flex-col lg:ml-0">
           {/* Mobile Header */}
           <div className="lg:hidden flex items-center justify-between p-4 border-b border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900">
-            {isFeatureEnabled('chatHistory') && (
+            {isFeatureEnabled("chatHistory") && (
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-800 transition-colors"
@@ -384,10 +398,10 @@ const AppContent: React.FC = () => {
                 <Bars3Icon className="w-5 h-5" />
               </button>
             )}
-            
+
             <div className="flex-1 text-center">
               <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {isRestoring ? t('common.loading') : chatTitle}
+                {isRestoring ? t("common.loading") : chatTitle}
               </h1>
               {currentChatId && (
                 <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -395,7 +409,7 @@ const AppContent: React.FC = () => {
                 </div>
               )}
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setSettingsOpen(true)}
@@ -403,8 +417,8 @@ const AppContent: React.FC = () => {
               >
                 <Cog6ToothIcon className="w-5 h-5" />
               </button>
-              
-              {isFeatureEnabled('darkMode') && (
+
+              {isFeatureEnabled("darkMode") && (
                 <button
                   onClick={toggleDarkMode}
                   className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-800 transition-colors"
@@ -437,7 +451,7 @@ const AppContent: React.FC = () => {
           )}
 
           {/* Model Selector */}
-          {isFeatureEnabled('modelSelector') && (
+          {isFeatureEnabled("modelSelector") && (
             <div className="p-4 border-b border-gray-200 dark:border-neutral-700">
               <ModelSelector
                 currentModel={currentModel}
@@ -455,11 +469,13 @@ const AppContent: React.FC = () => {
             messagesEndRef={messagesEndRef}
             onPromptClick={handlePromptClick}
             onCopy={handleCopy}
-            onRegenerate={() => isFeatureEnabled('messageRegeneration') && regenerateLastResponse()}
+            onRegenerate={() =>
+              isFeatureEnabled("messageRegeneration") &&
+              regenerateLastResponse()
+            }
             onStopGeneration={stopGeneration}
-            darkMode={darkMode}
-            showWelcome={isFeatureEnabled('welcomeScreen')}
-            showActions={isFeatureEnabled('messageActions')}
+            showWelcome={isFeatureEnabled("welcomeScreen")}
+            showActions={isFeatureEnabled("messageActions")}
             showTimestamps={config.ui.showTimestamps}
           />
 
@@ -471,16 +487,22 @@ const AppContent: React.FC = () => {
             onKeyDown={handleKeyDown}
             isLoading={isLoading}
             textareaRef={textareaRef}
-            onFileUpload={isFeatureEnabled('imageUpload') ? handleFileUpload : undefined}
-            onVoiceInput={isFeatureEnabled('voiceInput') ? () => console.log("Voice input not implemented yet") : undefined}
+            onFileUpload={
+              isFeatureEnabled("imageUpload") ? handleFileUpload : undefined
+            }
+            onVoiceInput={
+              isFeatureEnabled("voiceInput")
+                ? () => console.log("Voice input not implemented yet")
+                : undefined
+            }
             currentModel={currentModel}
             maxLength={config.ui.maxInputLength}
             showCharacterCount={config.ui.showCharacterCount}
-            placeholder={t('chat.inputPlaceholder')}
+            placeholder={t("chat.inputPlaceholder")}
           />
 
           {/* Hidden file input */}
-          {isFeatureEnabled('imageUpload') && (
+          {isFeatureEnabled("imageUpload") && (
             <input
               ref={fileInputRef}
               type="file"
@@ -499,7 +521,7 @@ const AppContent: React.FC = () => {
         />
 
         {/* Mobile Sidebar Overlay */}
-        {sidebarOpen && isFeatureEnabled('chatHistory') && (
+        {sidebarOpen && isFeatureEnabled("chatHistory") && (
           <div
             className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
             onClick={() => setSidebarOpen(false)}
