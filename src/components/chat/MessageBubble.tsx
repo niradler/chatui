@@ -216,7 +216,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                             parseIncompleteMarkdown={false}
                             shikiTheme={[
                               "github-dark-default",
-                              "github-dark-default",
+                              "github-light-default",
                             ]}
                           >
                             {thinks[thinkIdx]}
@@ -231,7 +231,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                           parseIncompleteMarkdown={false}
                           shikiTheme={[
                             "github-dark-default",
-                            "github-dark-default",
+                            "github-light-default",
                           ]}
                         >
                           {part}
