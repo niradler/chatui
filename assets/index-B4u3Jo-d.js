@@ -1,0 +1,1 @@
+import{en as o}from"./en-CKMzNd8g.js";import{es as t}from"./es-BlEkeFrA.js";import{fr as a}from"./fr-BMtBojxJ.js";const r={en:o,es:t,fr:a},n=Object.keys(r);export{n as availableLanguages,r as default,o as en,t as es,a as fr,r as translations};
