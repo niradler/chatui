@@ -7,7 +7,6 @@ import {
   LightBulbIcon,
   CodeBracketIcon,
   QuestionMarkCircleIcon,
-  Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
 
 // Configuration and Internationalization
@@ -16,14 +15,12 @@ import {
   useConfig,
   useFeatures,
 } from "./contexts/ConfigContext";
-import { I18nProvider, useI18n, TranslationLoader } from "./i18n";
 
 // Components
 import Sidebar from "./components/sidebar/Sidebar";
 import ChatMessages from "./components/chat/ChatMessages";
 import ChatInput from "./components/chat/ChatInput";
 import ModelSelector from "./components/ModelSelector";
-import SettingsModal from "./components/SettingsModal";
 import { ToastProvider } from "./components/Toast";
 
 // Hooks
@@ -53,12 +50,10 @@ declare global {
 const AppContent: React.FC = () => {
   const [inputValue, setInputValue] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Configuration and features
   const { config, isConfigLoaded } = useConfig();
   const { isFeatureEnabled } = useFeatures();
-  const { t } = useI18n();
 
   const { darkMode, toggleDarkMode } = useDarkMode();
   const { textareaRef } = useAutoResize(inputValue);
@@ -145,15 +140,15 @@ const AppContent: React.FC = () => {
             updatedAt: chatState.updatedAt,
           });
 
-          showSuccess(t("success.chatDeleted"));
+          showSuccess("Chat deleted successfully");
         } else {
-          showError(t("errors.chatLoadFailed"));
+          showError("Failed to load chat");
         }
       } catch {
-        showError(t("errors.chatLoadFailed"));
+        showError("Failed to load chat");
       }
     },
-    [loadChatState, restoreChat, showSuccess, showError, t]
+    [loadChatState, restoreChat, showSuccess, showError]
   );
 
   // Handle chat deletion
@@ -166,10 +161,10 @@ const AppContent: React.FC = () => {
           handleNewChat();
         }
       } catch {
-        showError(t("errors.chatDeleteFailed"));
+        showError("Failed to delete chat");
       }
     },
-    [deleteChat, currentChatId, handleNewChat, showError, t]
+    [deleteChat, currentChatId, handleNewChat, showError]
   );
 
   // Auto-save chat when messages change (if enabled)
@@ -256,12 +251,12 @@ const AppContent: React.FC = () => {
     async (content: string) => {
       try {
         await navigator.clipboard.writeText(content);
-        showSuccess(t("success.copied"));
+        showSuccess("Copied to clipboard");
       } catch {
-        showError(t("errors.unknownError"));
+        showError("Failed to copy to clipboard");
       }
     },
-    [showSuccess, showError, t]
+    [showSuccess, showError]
   );
 
   const handlePromptClick = useCallback(
@@ -318,7 +313,7 @@ const AppContent: React.FC = () => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    showSuccess(t("success.chatExported"));
+    showSuccess("Chat exported successfully");
   }, [
     messages,
     darkMode,
@@ -326,7 +321,6 @@ const AppContent: React.FC = () => {
     config.app.version,
     isFeatureEnabled,
     showSuccess,
-    t,
   ]);
 
   const handleShareChat = useCallback(async () => {
@@ -358,9 +352,7 @@ const AppContent: React.FC = () => {
       <div className="flex items-center justify-center h-screen bg-white dark:bg-neutral-900">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-neutral-400">
-            {t("common.loading")}
-          </p>
+          <p className="text-gray-600 dark:text-neutral-400">Loading...</p>
         </div>
       </div>
     );
@@ -401,7 +393,7 @@ const AppContent: React.FC = () => {
 
             <div className="flex-1 text-center">
               <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {isRestoring ? t("common.loading") : chatTitle}
+                {isRestoring ? "Loading..." : chatTitle}
               </h1>
               {currentChatId && (
                 <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -411,13 +403,6 @@ const AppContent: React.FC = () => {
             </div>
 
             <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setSettingsOpen(true)}
-                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-800 transition-colors"
-              >
-                <Cog6ToothIcon className="w-5 h-5" />
-              </button>
-
               {isFeatureEnabled("darkMode") && (
                 <button
                   onClick={toggleDarkMode}
@@ -498,7 +483,7 @@ const AppContent: React.FC = () => {
             currentModel={currentModel}
             maxLength={config.ui.maxInputLength}
             showCharacterCount={config.ui.showCharacterCount}
-            placeholder={t("chat.inputPlaceholder")}
+            placeholder="Type your message here..."
           />
 
           {/* Hidden file input */}
@@ -513,12 +498,6 @@ const AppContent: React.FC = () => {
             />
           )}
         </div>
-
-        {/* Settings Modal */}
-        <SettingsModal
-          isOpen={settingsOpen}
-          onClose={() => setSettingsOpen(false)}
-        />
 
         {/* Mobile Sidebar Overlay */}
         {sidebarOpen && isFeatureEnabled("chatHistory") && (
@@ -536,11 +515,7 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <ConfigProvider>
-      <I18nProvider>
-        <TranslationLoader>
-          <AppContent />
-        </TranslationLoader>
-      </I18nProvider>
+      <AppContent />
     </ConfigProvider>
   );
 };
