@@ -140,7 +140,7 @@ const AppContent: React.FC = () => {
             updatedAt: chatState.updatedAt,
           });
 
-          showSuccess("Chat deleted successfully");
+          showSuccess("Chat loaded successfully");
         } else {
           showError("Failed to load chat");
         }
